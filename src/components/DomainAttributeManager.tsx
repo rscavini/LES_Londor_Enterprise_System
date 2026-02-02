@@ -133,6 +133,13 @@ const DomainAttributeManager: React.FC = () => {
                     sortOrder: Number(formData.newSortOrder),
                     justification: formData.newJustification
                 });
+            } else if (modalType === 'dom_new') {
+                DomainService.createDomain({
+                    name: formData.name,
+                    code: formData.name.toUpperCase().replace(/\s+/g, '_'),
+                    type: formData.description as any, // 'CLOSED' o 'SEMI_CLOSED'
+                    createdBy: 'admin'
+                });
             }
 
             loadData();
@@ -196,7 +203,8 @@ const DomainAttributeManager: React.FC = () => {
                     <h2 style={{ marginBottom: '24px' }}>
                         {modalType === 'attr_edit' ? 'Editar Atributo' :
                             modalType === 'attr_new' ? 'Nuevo Atributo' :
-                                modalType === 'val_edit' ? 'Editar Valor' : 'Añadir Valor al Dominio'}
+                                modalType === 'dom_new' ? 'Nuevo Dominio Maestro' :
+                                    modalType === 'val_edit' ? 'Editar Valor' : 'Añadir Valor al Dominio'}
                     </h2>
 
                     {modalType?.startsWith('attr') && (
@@ -256,6 +264,35 @@ const DomainAttributeManager: React.FC = () => {
                         </div>
                     )}
 
+                    {modalType === 'dom_new' && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600 }}>Nombre del Dominio</label>
+                                <input
+                                    className="form-control"
+                                    placeholder="Ej: Tipos de Cierre, Calidades de Gema..."
+                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }}
+                                    value={formData.name}
+                                    onChange={e => setFormData({ ...formData, name: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600 }}>Tipo de Gobernanza</label>
+                                <select
+                                    className="form-control"
+                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }}
+                                    value={formData.description}
+                                    onChange={e => setFormData({ ...formData, description: e.target.value })}
+                                >
+                                    <option value="CLOSED">CERRADO (Solo Admin añade valores)</option>
+                                    <option value="SEMI_CLOSED">SEMI-CERRADO (Joyero puede sugerir con justificación)</option>
+                                </select>
+                            </div>
+                            <p style={{ fontSize: '12px', color: 'var(--text-muted)', backgroundColor: '#f8f9fa', padding: '12px', borderRadius: '8px' }}>
+                                <strong>Tip:</strong> Un dominio es un diccionario reutilizable. Una vez creado, podrás vincularlo a uno o más atributos.
+                            </p>
+                        </div>
+                    )}
                     {modalType?.startsWith('val') && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                             <div>
@@ -302,6 +339,24 @@ const DomainAttributeManager: React.FC = () => {
 
     return (
         <div className="container" style={{ paddingBottom: '60px' }}>
+            <div style={{
+                backgroundColor: 'rgba(52, 152, 219, 0.05)',
+                border: '1px solid rgba(52, 152, 219, 0.1)',
+                padding: '16px 24px',
+                borderRadius: '12px',
+                marginBottom: '24px',
+                display: 'flex',
+                gap: '20px',
+                alignItems: 'center'
+            }}>
+                <AlertCircle size={20} color="var(--primary)" />
+                <div style={{ fontSize: '13px', color: '#555', lineHeight: '1.5' }}>
+                    <strong>Guía rápida:</strong> El <strong>Atributo</strong> es el campo técnico (ej: <em>"Acabado"</em>).
+                    El <strong>Dominio</strong> es la lista de opciones (ej: <em>"Lista de Acabados"</em>: Pulido, Mate...).
+                    Varios atributos pueden compartir el mismo dominio para mantener la consistencia.
+                </div>
+            </div>
+
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' }}>
                 <div>
                     <h1 style={{ fontSize: '2.5rem', marginBottom: '8px' }}>Torre de Control de Atributos</h1>

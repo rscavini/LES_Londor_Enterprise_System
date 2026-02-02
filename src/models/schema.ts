@@ -77,6 +77,24 @@ export interface OperationalStatus {
 // Especialidades de Taller
 export type WorkshopSpecialty = 'Pulido' | 'Engaste' | 'Grabado' | 'Ajuste de Talla' | 'Reparación General' | 'Limpieza';
 
+// Horarios comerciales
+export interface TimeRange {
+    open: string;
+    close: string;
+}
+
+export interface BusinessHours {
+    morning?: TimeRange;
+    afternoon?: TimeRange;
+}
+
+// Vitrinas/Secciones de Tienda
+export interface Showcase {
+    id: string;
+    name: string;
+    details: string[];
+}
+
 // Metadatos específicos
 export interface LocationMetadata {
     contactPerson?: string;
@@ -90,6 +108,13 @@ export interface LocationMetadata {
     contractUrl?: string;
     // Campos Store
     managerName?: string;
+    openingHours?: string; // Legacy / Fallback
+    businessHours?: BusinessHours; // Nuevo formato Mon-Sat
+    showcasesCount?: number;
+    securityLevel?: 'LOW' | 'MEDIUM' | 'HIGH' | 'ELITE';
+    showcases?: Showcase[];
+    // Campos Other
+    notes?: string;
 }
 
 // Mapeo Atributo - Clasificación (Fase 2 - Configuración Dinámica)
