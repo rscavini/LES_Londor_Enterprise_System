@@ -8,9 +8,10 @@ const DomainAttributeManager: React.FC = () => {
     const [selectedAttrId, setSelectedAttrId] = useState<string | null>(null);
     const [selectedDomainId, setSelectedDomainId] = useState<string | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [modalType, setModalType] = useState<'attr_edit' | 'attr_new' | 'val_new' | 'val_edit' | null>(null);
+    const [modalType, setModalType] = useState<'attr_edit' | 'attr_new' | 'val_new' | 'val_edit' | 'dom_new' | null>(null);
     const [editingAttribute, setEditingAttribute] = useState<Attribute | null>(null);
     const [editingValue, setEditingValue] = useState<DomainValue | null>(null);
+    const [viewMode, setViewMode] = useState<'attributes' | 'domains'>('attributes');
 
     // Form states
     const [formData, setFormData] = useState({
@@ -58,9 +59,10 @@ const DomainAttributeManager: React.FC = () => {
         }
     }, [selectedDomainId]);
 
-    const handleOpenModal = (type: 'attr_edit' | 'attr_new' | 'val_new' | 'val_edit', data?: any) => {
+    const handleOpenModal = (type: 'attr_edit' | 'attr_new' | 'val_new' | 'val_edit' | 'dom_new', data?: any) => {
         setModalType(type);
         if (type === 'attr_edit' && data) {
+            // ... existing
             setEditingAttribute(data);
             setFormData({
                 ...formData,
@@ -68,6 +70,14 @@ const DomainAttributeManager: React.FC = () => {
                 description: data.description || '',
                 dataType: data.dataType,
                 domainId: data.domainId || ''
+            });
+        } else if (type === 'dom_new') {
+            setFormData({
+                ...formData,
+                name: '',
+                description: 'CLOSED', // Usaremos description temporalmente para el tipo de dominio en dom_new
+                dataType: 'TEXT',
+                domainId: ''
             });
         } else if (type === 'val_edit' && data) {
             setEditingValue(data);
@@ -298,13 +308,30 @@ const DomainAttributeManager: React.FC = () => {
                     <p style={{ color: 'var(--text-muted)' }}>Gestión técnica del catálogo de datos LES</p>
                 </div>
                 <div style={{ display: 'flex', gap: '12px' }}>
-                    <button className="btn btn-accent" onClick={() => handleOpenModal('attr_new')}>
-                        <Plus size={18} /> Nuevo Atributo
+                    <button
+                        className={`btn ${viewMode === 'attributes' ? 'btn-accent' : ''}`}
+                        onClick={() => setViewMode('attributes')}
+                        style={{ border: viewMode === 'attributes' ? 'none' : '1px solid #ddd' }}
+                    >
+                        <List size={18} /> Catálogo de Atributos
                     </button>
-                    <button className="btn" style={{ borderColor: 'rgba(0,0,0,0.1)' }}>
+                    <button
+                        className={`btn ${viewMode === 'domains' ? 'btn-accent' : ''}`}
+                        onClick={() => setViewMode('domains')}
+                        style={{ border: viewMode === 'domains' ? 'none' : '1px solid #ddd' }}
+                    >
                         <Database size={16} /> Dominios Maestros
                     </button>
                 </div>
+                {viewMode === 'attributes' ? (
+                    <button className="btn btn-primary" onClick={() => handleOpenModal('attr_new')}>
+                        <Plus size={18} /> Nuevo Atributo
+                    </button>
+                ) : (
+                    <button className="btn btn-primary" onClick={() => handleOpenModal('dom_new')}>
+                        <Plus size={18} /> Nuevo Dominio
+                    </button>
+                )}
             </div>
 
             <div style={{
@@ -313,57 +340,90 @@ const DomainAttributeManager: React.FC = () => {
                 gap: '24px',
                 alignItems: 'start'
             }}>
-                {/* Columna 1: Atributostécnicos */}
+                {/* Columna 1: Atributos o Dominios */}
                 <div className="glass-card" style={{ padding: '24px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                        <h4 style={{ margin: 0, textTransform: 'uppercase', fontSize: '11px', letterSpacing: '1px', color: 'var(--text-muted)' }}>Catálogo Maestro</h4>
+                        <h4 style={{ margin: 0, textTransform: 'uppercase', fontSize: '11px', letterSpacing: '1px', color: 'var(--text-muted)' }}>
+                            {viewMode === 'attributes' ? 'Atributos Técnicos' : 'Dominios de Datos'}
+                        </h4>
                         <Settings size={16} color="var(--primary)" opacity={0.5} />
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        {attributes.map(attr => (
-                            <div
-                                key={attr.id}
-                                className={`selection-card ${selectedAttrId === attr.id ? 'active' : ''}`}
-                                onClick={() => setSelectedAttrId(attr.id)}
-                                style={{
-                                    padding: '16px',
-                                    borderRadius: '12px',
-                                    backgroundColor: selectedAttrId === attr.id ? 'var(--primary)' : 'white',
-                                    color: selectedAttrId === attr.id ? 'white' : 'var(--text-main)',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.2s',
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center',
-                                    border: '1px solid rgba(0,0,0,0.05)',
-                                    boxShadow: selectedAttrId === attr.id ? '0 8px 16px rgba(52, 152, 219, 0.2)' : 'none'
-                                }}
-                            >
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                    <List size={16} opacity={0.7} />
-                                    <div>
-                                        <div style={{ fontWeight: 600, fontSize: '14px' }}>{attr.name}</div>
-                                        <div style={{ fontSize: '10px', opacity: 0.7 }}>{attr.dataType}</div>
+                        {viewMode === 'attributes' ? (
+                            attributes.map(attr => (
+                                <div
+                                    key={attr.id}
+                                    className={`selection-card ${selectedAttrId === attr.id ? 'active' : ''}`}
+                                    onClick={() => setSelectedAttrId(attr.id)}
+                                    style={{
+                                        padding: '16px',
+                                        borderRadius: '12px',
+                                        backgroundColor: selectedAttrId === attr.id ? 'var(--primary)' : 'white',
+                                        color: selectedAttrId === attr.id ? 'white' : 'var(--text-main)',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s',
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        border: '1px solid rgba(0,0,0,0.05)',
+                                        boxShadow: selectedAttrId === attr.id ? '0 8px 16px rgba(52, 152, 219, 0.2)' : 'none'
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                        <List size={16} opacity={0.7} />
+                                        <div>
+                                            <div style={{ fontWeight: 600, fontSize: '14px' }}>{attr.name}</div>
+                                            <div style={{ fontSize: '10px', opacity: 0.7 }}>{attr.dataType}</div>
+                                        </div>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); handleOpenModal('attr_edit', attr); }}
+                                            style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', opacity: 0.6 }}
+                                            title="Editar Atributo"
+                                        >
+                                            <Edit2 size={14} />
+                                        </button>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); handleDeleteAttribute(attr.id); }}
+                                            style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', opacity: 0.6 }}
+                                            title="Eliminar Atributo"
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
                                     </div>
                                 </div>
-                                <div style={{ display: 'flex', gap: '8px' }}>
-                                    <button
-                                        onClick={(e) => { e.stopPropagation(); handleOpenModal('attr_edit', attr); }}
-                                        style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', opacity: 0.6 }}
-                                        title="Editar Atributo"
-                                    >
-                                        <Edit2 size={14} />
-                                    </button>
-                                    <button
-                                        onClick={(e) => { e.stopPropagation(); handleDeleteAttribute(attr.id); }}
-                                        style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', opacity: 0.6 }}
-                                        title="Eliminar Atributo"
-                                    >
-                                        <Trash2 size={14} />
-                                    </button>
+                            ))
+                        ) : (
+                            domains.map(dom => (
+                                <div
+                                    key={dom.id}
+                                    className={`selection-card ${selectedDomainId === dom.id ? 'active' : ''}`}
+                                    onClick={() => setSelectedDomainId(dom.id)}
+                                    style={{
+                                        padding: '16px',
+                                        borderRadius: '12px',
+                                        backgroundColor: selectedDomainId === dom.id ? 'var(--primary)' : 'white',
+                                        color: selectedDomainId === dom.id ? 'white' : 'var(--text-main)',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s',
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        border: '1px solid rgba(0,0,0,0.05)',
+                                        boxShadow: selectedDomainId === dom.id ? '0 8px 16px rgba(52, 152, 219, 0.2)' : 'none'
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                        <Database size={16} opacity={0.7} />
+                                        <div>
+                                            <div style={{ fontWeight: 600, fontSize: '14px' }}>{dom.name}</div>
+                                            <div style={{ fontSize: '10px', opacity: 0.7 }}>DOMINIO</div>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            ))
+                        )}
                     </div>
                 </div>
 
@@ -373,9 +433,9 @@ const DomainAttributeManager: React.FC = () => {
                         <h4 style={{ margin: 0, textTransform: 'uppercase', fontSize: '11px', letterSpacing: '1px', color: 'var(--text-muted)' }}>Dominio de Datos</h4>
                         <Database size={16} color="var(--primary)" opacity={0.5} />
                     </div>
-                    {selectedAttrId ? (
+                    {selectedAttrId || (viewMode === 'domains' && selectedDomainId) ? (
                         <div>
-                            {attributes.find(a => a.id === selectedAttrId)?.dataType === 'LIST' ? (
+                            {viewMode === 'attributes' && attributes.find(a => a.id === selectedAttrId)?.dataType === 'LIST' || viewMode === 'domains' ? (
                                 <div style={{
                                     padding: '20px',
                                     borderRadius: '16px',
@@ -393,7 +453,7 @@ const DomainAttributeManager: React.FC = () => {
                                         <Database size={24} />
                                     </div>
                                     <h3 style={{ fontSize: '16px', marginBottom: '4px' }}>
-                                        {domains.find(d => d.id === selectedDomainId)?.name || 'Cargando...'}
+                                        {domains.find(d => d.id === selectedDomainId)?.name || 'Sin Dominio'}
                                     </h3>
                                     <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px' }}>
                                         {domains.find(d => d.id === selectedDomainId)?.code}
@@ -409,6 +469,33 @@ const DomainAttributeManager: React.FC = () => {
                                     }}>
                                         {domains.find(d => d.id === selectedDomainId)?.type}
                                     </div>
+
+                                    {viewMode === 'domains' && (
+                                        <div style={{ marginTop: '24px', textAlign: 'left' }}>
+                                            <div style={{ borderTop: '1px solid #eee', margin: '16px 0' }} />
+                                            <h5 style={{ fontSize: '10px', color: 'var(--text-muted)', marginBottom: '12px', letterSpacing: '0.5px' }}>USO EN CATÁLOGO GLOBAL</h5>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                {attributes.filter(a => a.domainId === selectedDomainId).map(a => (
+                                                    <div key={a.id} style={{
+                                                        fontSize: '11px',
+                                                        padding: '6px 10px',
+                                                        borderRadius: '6px',
+                                                        backgroundColor: '#f8f9fa',
+                                                        border: '1px solid #f1f1f1',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '8px'
+                                                    }}>
+                                                        <Settings size={12} opacity={0.5} />
+                                                        {a.name}
+                                                    </div>
+                                                ))}
+                                                {attributes.filter(a => a.domainId === selectedDomainId).length === 0 && (
+                                                    <p style={{ fontSize: '11px', color: '#ccc', fontStyle: 'italic', margin: 0 }}>Sin atributos vinculados.</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             ) : (
                                 <div style={{ textAlign: 'center', padding: '40px 20px', opacity: 0.5 }}>
@@ -420,8 +507,12 @@ const DomainAttributeManager: React.FC = () => {
                         </div>
                     ) : (
                         <div style={{ textAlign: 'center', padding: '40px 20px', opacity: 0.3 }}>
-                            <List size={32} style={{ margin: '0 auto 12px' }} />
-                            <p style={{ fontSize: '13px' }}>Seleccione un atributo para ver su dominio.</p>
+                            <Database size={32} style={{ margin: '0 auto 12px' }} />
+                            <p style={{ fontSize: '13px' }}>
+                                {viewMode === 'attributes'
+                                    ? 'Seleccione un atributo para ver su configuración de dominio.'
+                                    : 'Seleccione un dominio para gestionar sus valores maestros.'}
+                            </p>
                         </div>
                     )}
                 </div>

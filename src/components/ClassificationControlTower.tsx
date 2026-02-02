@@ -757,7 +757,7 @@ const ClassificationControlTower: React.FC = () => {
                     <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
                             <h2 style={{ margin: 0 }}>Gestión Maestra de Dominios y Atributos</h2>
-                            <button className="btn" onClick={() => setIsDomainManagerModalOpen(false)}>Volver a Torre de Control</button>
+                            <button className="btn" onClick={() => { setIsDomainManagerModalOpen(false); loadBaseData(); }}>Volver a Torre de Control</button>
                         </div>
                         <DomainAttributeManager />
                     </div>

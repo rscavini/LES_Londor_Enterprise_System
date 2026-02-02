@@ -49,6 +49,17 @@ let domainValues: DomainValue[] = [
 export const DomainService = {
     getDomains: (): Domain[] => domains.filter(d => d.isActive),
 
+    createDomain: (data: Omit<Domain, 'id' | 'createdAt' | 'isActive'>): Domain => {
+        const newDomain: Domain = {
+            ...data,
+            id: `dom_${Date.now()}`,
+            isActive: true,
+            createdAt: new Date()
+        };
+        domains.push(newDomain);
+        return newDomain;
+    },
+
     getValuesByDomain: (domainId: string): DomainValue[] => {
         return domainValues.filter(v => v.domainId === domainId && v.isActive)
             .sort((a, b) => a.sortOrder - b.sortOrder);
