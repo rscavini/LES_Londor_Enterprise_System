@@ -1,0 +1,153 @@
+/**
+ * Definición del esquema de datos para el Módulo de Inventario LES.
+ * Basado en las fases de consultoría A0-A8.
+ */
+
+// Categorías (Anexo A)
+export interface Category {
+    id: string;          // UUID
+    name: string;        // Nombre único (Anillos, Pendientes, etc.)
+    description?: string;
+    isActive: boolean;
+    createdAt: Date;
+    createdBy: string;
+}
+
+// Subcategorías (Anexo A)
+export interface Subcategory {
+    id: string;
+    categoryId: string;  // FK a Category
+    name: string;        // Unique dentro de la categoría
+    description?: string;
+    isActive: boolean;
+    createdAt: Date;
+    createdBy: string;
+}
+
+// Atributos (Anexo B)
+export type DataType = 'TEXT' | 'NUMBER' | 'BOOLEAN' | 'LIST' | 'RANGE' | 'DATE';
+
+export interface Attribute {
+    id: string;
+    name: string;        // Nombre funcional único (Material principal, Color metal)
+    description?: string;
+    dataType: DataType;
+    domainId?: string;   // FK a Domain si dataType es 'LIST'
+    isActive: boolean;
+    createdAt: Date;
+    createdBy: string;
+}
+
+// Dominios (Anexo D)
+export type DomainType = 'CLOSED' | 'SEMI_CLOSED';
+
+export interface Domain {
+    id: string;
+    code: string;        // ID estable (MATERIAL, COLOR_METAL)
+    name: string;
+    description?: string;
+    type: DomainType;
+    isActive: boolean;
+    createdAt: Date;
+    createdBy: string;
+}
+
+// Valores de Dominio (Anexo D)
+export interface DomainValue {
+    id: string;
+    domainId: string;    // FK a Domain
+    value: string;
+    sortOrder: number;
+    source: 'NORMATIVE' | 'USER_ADDED';
+    justification?: string; // Obligatorio si source es 'USER_ADDED'
+    isActive: boolean;
+    createdAt: Date;
+    createdBy: string;
+}
+
+// Estados Operativos (Anexo D)
+export interface OperationalStatus {
+    id: string;
+    name: string;
+    isActive: boolean;
+    createdAt: Date;
+    createdBy: string;
+}
+
+// Especialidades de Taller
+export type WorkshopSpecialty = 'Pulido' | 'Engaste' | 'Grabado' | 'Ajuste de Talla' | 'Reparación General' | 'Limpieza';
+
+// Metadatos específicos
+export interface LocationMetadata {
+    contactPerson?: string;
+    phone?: string;
+    email?: string;
+    address?: string;
+    // Campos Workshop
+    specialties?: WorkshopSpecialty[];
+    rating?: number;
+    slaDays?: number;
+    contractUrl?: string;
+    // Campos Store
+    managerName?: string;
+}
+
+// Mapeo Atributo - Clasificación (Fase 2 - Configuración Dinámica)
+export interface ClassificationMapping {
+    categoryId?: string;    // Opcional: Si se aplica a nivel de categoría
+    subcategoryId?: string; // Opcional: Si se aplica a nivel de subcategoría
+    attributeId: string;    // FK a Attribute
+    isMandatory: boolean;   // Si el campo es obligatorio
+    sortOrder: number;      // Orden de aparición
+}
+
+// Entidad Principal: Inventario (Fase 1)
+export interface InventoryItem {
+    id: string;               // UUID interno
+    itemCode: string;         // Código de pieza LONDOR (ej. LD-2024-001)
+    qrCode: string;           // Valor para el QR (vínculo permanente)
+
+    // Clasificación
+    categoryId: string;
+    subcategoryId: string;
+
+    // Identificación
+    name: string;             // Nombre corto
+    description: string;      // Descripción técnica completa
+
+    // Estado y Ubicación
+    statusId: string;         // FK a OperationalStatus
+    locationId: string;       // FK a Location
+
+    // Valores Económicos (Básicos Fase 1)
+    purchasePrice?: number;   // Coste
+    salePrice?: number;       // Precio PVP base
+
+    // Datos Físicos
+    mainWeight?: number;      // Peso total en gramos
+
+    // Datos Dinámicos (Fase 2)
+    attributes: Record<string, any>; // ID_ATRIBUTO: VALOR
+
+    // Multimedia
+    images: string[];
+
+    // Auditoría
+    isActive: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+    createdBy: string;
+}
+
+// Ubicaciones (Anexo D - Especializado Fase 0+)
+export type LocationType = 'WORKSHOP' | 'STORE' | 'OTHER';
+
+export interface Location {
+    id: string;
+    name: string;
+    type: LocationType;
+    metadata?: LocationMetadata;
+    isActive: boolean;
+    createdAt: Date;
+    createdBy: string;
+}
