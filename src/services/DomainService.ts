@@ -1,7 +1,11 @@
+import { db } from '../firebase';
+import { collection, getDocs, getDoc, doc, addDoc, updateDoc, query, where, serverTimestamp, setDoc, orderBy } from 'firebase/firestore';
 import { Domain, DomainValue } from '../models/schema';
 
-// Mock de base de datos para Dominios
-let domains: Domain[] = [
+const DOMAIN_COLL = 'domains';
+const VALUE_COLL = 'domain_values';
+
+const initialDomains: Domain[] = [
     { id: 'dom_origen', code: 'ORIGEN', name: 'Origen de la Pieza', type: 'CLOSED', isActive: true, createdAt: new Date(), createdBy: 'system' },
     { id: 'dom_legal', code: 'ESTADO_LEGAL', name: 'Estado Legal', type: 'CLOSED', isActive: true, createdAt: new Date(), createdBy: 'system' },
     { id: 'dom_material', code: 'MATERIAL', name: 'Material Principal', type: 'SEMI_CLOSED', isActive: true, createdAt: new Date(), createdBy: 'system' },
@@ -24,83 +28,60 @@ let domains: Domain[] = [
     { id: 'dom_motivo', code: 'MOTIVO_ESPECIAL', name: 'Motivo Especial', type: 'SEMI_CLOSED', isActive: true, createdAt: new Date(), createdBy: 'system' }
 ];
 
-let domainValues: DomainValue[] = [
-    // Origen
+const initialValues: DomainValue[] = [
     { id: 'dv_og_new', domainId: 'dom_origen', value: 'Nueva', sortOrder: 1, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
     { id: 'dv_og_re', domainId: 'dom_origen', value: 'Recompra', sortOrder: 2, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'dv_og_sh', domainId: 'dom_origen', value: 'Segunda mano', sortOrder: 3, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    // Materiales
     { id: 'dv_mat_oro', domainId: 'dom_material', value: 'Oro', sortOrder: 1, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
     { id: 'dv_mat_plata', domainId: 'dom_material', value: 'Plata', sortOrder: 2, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'dv_mat_platino', domainId: 'dom_material', value: 'Platino', sortOrder: 3, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    // Leyes
     { id: 'dv_ley_18k', domainId: 'dom_ley', value: '18k', sortOrder: 3, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'dv_ley_925', domainId: 'dom_ley', value: '925', sortOrder: 6, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    // Colores Metal
     { id: 'dv_col_ama', domainId: 'dom_color_metal', value: 'Amarillo', sortOrder: 1, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'dv_col_bla', domainId: 'dom_color_metal', value: 'Blanco', sortOrder: 2, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'dv_col_ros', domainId: 'dom_color_metal', value: 'Rosa', sortOrder: 3, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    // Estados Operativos
-    { id: 'dv_ope_dis', domainId: 'dom_estado_ope', value: 'Disponible', sortOrder: 2, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'dv_ope_res', domainId: 'dom_estado_ope', value: 'Reservada / Apartada', sortOrder: 3, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'dv_ope_rep', domainId: 'dom_estado_ope', value: 'En reparación / personalización', sortOrder: 4, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' }
+    { id: 'dv_col_bla', domainId: 'dom_color_metal', value: 'Blanco', sortOrder: 2, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' }
 ];
 
 export const DomainService = {
-    getDomains: (): Domain[] => domains.filter(d => d.isActive),
+    getDomains: async (): Promise<Domain[]> => {
+        const q = query(collection(db, DOMAIN_COLL), where('isActive', '==', true));
+        const querySnapshot = await getDocs(q);
 
-    createDomain: (data: Omit<Domain, 'id' | 'createdAt' | 'isActive'>): Domain => {
-        const newDomain: Domain = {
-            ...data,
-            id: `dom_${Date.now()}`,
-            isActive: true,
-            createdAt: new Date()
-        };
-        domains.push(newDomain);
-        return newDomain;
-    },
-
-    getValuesByDomain: (domainId: string): DomainValue[] => {
-        return domainValues.filter(v => v.domainId === domainId && v.isActive)
-            .sort((a, b) => a.sortOrder - b.sortOrder);
-    },
-
-    addValue: (data: Omit<DomainValue, 'id' | 'createdAt' | 'isActive'>): DomainValue => {
-        const domain = domains.find(d => d.id === data.domainId);
-
-        // R11/R12: Gestión de nuevos valores
-        if (domain?.type === 'CLOSED' && data.source === 'USER_ADDED') {
-            console.log(`Aviso: Añadiendo valor a un dominio CERRADO: ${domain.name}`);
+        if (querySnapshot.empty) {
+            for (const dom of initialDomains) {
+                await setDoc(doc(db, DOMAIN_COLL, dom.id), { ...dom, createdAt: serverTimestamp() });
+            }
+            return initialDomains;
         }
 
-        if (data.source === 'USER_ADDED' && !data.justification) {
-            throw new Error('La justificación es obligatoria para nuevos valores en dominios semi-cerrados.');
+        return querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as Domain[];
+    },
+
+    getValuesByDomain: async (domainId: string): Promise<DomainValue[]> => {
+        const q = query(collection(db, VALUE_COLL),
+            where('domainId', '==', domainId),
+            where('isActive', '==', true),
+            orderBy('sortOrder', 'asc'));
+        const querySnapshot = await getDocs(q);
+
+        if (querySnapshot.empty) {
+            const defaults = initialValues.filter(v => v.domainId === domainId);
+            for (const v of defaults) {
+                await setDoc(doc(db, VALUE_COLL, v.id), { ...v, createdAt: serverTimestamp() });
+            }
+            return defaults;
         }
 
-        const newValue: DomainValue = {
-            ...data,
-            id: `val_${Date.now()}`,
-            isActive: true,
-            createdAt: new Date()
-        };
-
-        domainValues.push(newValue);
-        return newValue;
+        return querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as DomainValue[];
     },
 
-    updateValue: (id: string, updates: Partial<DomainValue>): DomainValue | undefined => {
-        const index = domainValues.findIndex(v => v.id === id);
-        if (index === -1) return undefined;
-
-        domainValues[index] = { ...domainValues[index], ...updates };
-        return domainValues[index];
+    createDomain: async (data: Omit<Domain, 'id' | 'createdAt' | 'isActive'>): Promise<Domain> => {
+        const id = `dom_${Date.now()}`;
+        const newDomain = { ...data, isActive: true, createdAt: serverTimestamp() };
+        await setDoc(doc(db, DOMAIN_COLL, id), newDomain);
+        return { ...newDomain, id, createdAt: new Date() } as Domain;
     },
 
-    deleteValue: (id: string): boolean => {
-        const index = domainValues.findIndex(v => v.id === id);
-        if (index === -1) return false;
-
-        domainValues[index].isActive = false;
-        return true;
+    addValue: async (data: Omit<DomainValue, 'id' | 'createdAt' | 'isActive'>): Promise<DomainValue> => {
+        const id = `val_${Date.now()}`;
+        const newValue = { ...data, isActive: true, createdAt: serverTimestamp() };
+        await setDoc(doc(db, VALUE_COLL, id), newValue);
+        return { ...newValue, id, createdAt: new Date() } as DomainValue;
     }
 };

@@ -1,8 +1,12 @@
+import { db } from '../firebase';
+import { collection, getDocs, getDoc, doc, addDoc, updateDoc, query, where, serverTimestamp, setDoc } from 'firebase/firestore';
 import { Category } from '../models/schema';
 import { SubcategoryService } from './SubcategoryService';
 
-// Mock de base de datos para la Fase 0 (se sustituirá por Firestore/SQL en la Fase 1)
-let categories: Category[] = [
+const COLLECTION_NAME = 'categories';
+
+// Initial data for seeding
+const initialCategories: Category[] = [
     { id: 'cat_anillos', name: 'Anillos', description: 'Piezas destinadas a ser llevadas en el dedo.', isActive: true, createdAt: new Date(), createdBy: 'system' },
     { id: 'cat_pendientes', name: 'Pendientes', description: 'Piezas destinadas a la oreja.', isActive: true, createdAt: new Date(), createdBy: 'system' },
     { id: 'cat_collares', name: 'Collares', description: 'Piezas completas destinadas al cuello.', isActive: true, createdAt: new Date(), createdBy: 'system' },
@@ -19,41 +23,71 @@ let categories: Category[] = [
 ];
 
 export const CategoryService = {
-    getAll: (): Category[] => {
-        return categories.filter(c => c.isActive);
+    getAll: async (): Promise<Category[]> => {
+        const q = query(collection(db, COLLECTION_NAME), where('isActive', '==', true));
+        const querySnapshot = await getDocs(q);
+
+        // Seed if empty (for Phase 0 -> Phase 1 transition)
+        if (querySnapshot.empty) {
+            console.log('Sembrando categorías iniciales en Firestore...');
+            for (const cat of initialCategories) {
+                await setDoc(doc(db, COLLECTION_NAME, cat.id), {
+                    ...cat,
+                    createdAt: serverTimestamp()
+                });
+            }
+            return initialCategories;
+        }
+
+        return querySnapshot.docs.map(doc => ({
+            ...doc.data(),
+            id: doc.id,
+            createdAt: doc.data().createdAt?.toDate()
+        })) as Category[];
     },
 
-    getById: (id: string): Category | undefined => {
-        return categories.find(c => c.id === id);
+    getById: async (id: string): Promise<Category | undefined> => {
+        const docRef = doc(db, COLLECTION_NAME, id);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists() && docSnap.data().isActive) {
+            return {
+                ...docSnap.data(),
+                id: docSnap.id,
+                createdAt: docSnap.data().createdAt?.toDate()
+            } as Category;
+        }
+        return undefined;
     },
 
-    create: (category: Omit<Category, 'id' | 'createdAt' | 'isActive'>): Category => {
-        const newCategory: Category = {
+    create: async (category: Omit<Category, 'id' | 'createdAt' | 'isActive'>): Promise<Category> => {
+        const id = `cat_${Date.now()}`;
+        const newCategory = {
             ...category,
-            id: `cat_${Date.now()}`,
             isActive: true,
-            createdAt: new Date()
+            createdAt: serverTimestamp()
         };
-        categories.push(newCategory);
-        return newCategory;
+        await setDoc(doc(db, COLLECTION_NAME, id), newCategory);
+        return { ...newCategory, id, createdAt: new Date() } as Category;
     },
 
-    update: (id: string, updates: Partial<Category>): Category | undefined => {
-        const index = categories.findIndex(c => c.id === id);
-        if (index === -1) return undefined;
-
-        categories[index] = { ...categories[index], ...updates };
-        return categories[index];
+    update: async (id: string, updates: Partial<Category>): Promise<Category | undefined> => {
+        const docRef = doc(db, COLLECTION_NAME, id);
+        await updateDoc(docRef, updates);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            return { ...docSnap.data(), id: docSnap.id, createdAt: docSnap.data().createdAt?.toDate() } as Category;
+        }
+        return undefined;
     },
 
-    deleteLogic: (id: string): boolean => {
-        const index = categories.findIndex(c => c.id === id);
-        if (index === -1) return false;
-
-        // Propagar borrado a subcategorías
-        SubcategoryService.deactivateByCategory(id);
-
-        categories[index].isActive = false;
-        return true;
+    deleteLogic: async (id: string): Promise<boolean> => {
+        const docRef = doc(db, COLLECTION_NAME, id);
+        try {
+            await SubcategoryService.deactivateByCategory(id);
+            await updateDoc(docRef, { isActive: false });
+            return true;
+        } catch (e) {
+            return false;
+        }
     }
 };

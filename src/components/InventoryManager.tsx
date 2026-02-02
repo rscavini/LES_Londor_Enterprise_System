@@ -10,7 +10,21 @@ import {
     MoreVertical,
     LayoutGrid,
     List,
-    Image as ImageIcon
+    Image as ImageIcon,
+    X,
+    ChevronRight,
+    CheckCircle2,
+    Trash2,
+    Download,
+    Printer,
+    ArrowUpDown,
+    Check,
+    Cpu,
+    Upload,
+    ImagePlus,
+    Copy,
+    RotateCcw,
+    Calculator
 } from 'lucide-react';
 import { InventoryService } from '../services/InventoryService';
 import { CategoryService } from '../services/CategoryService';
@@ -20,6 +34,7 @@ import { OperationalStatusService } from '../services/OperationalStatusService';
 import { ClassificationService } from '../services/ClassificationService';
 import { AttributeService } from '../services/AttributeService';
 import { DomainService } from '../services/DomainService';
+import { AIService } from '../services/AIService';
 import { InventoryItem, Category, Subcategory, Location, OperationalStatus, ClassificationMapping, Attribute } from '../models/schema';
 
 const InventoryManager: React.FC = () => {
@@ -32,11 +47,23 @@ const InventoryManager: React.FC = () => {
     // Dynamic Fields State
     const [dynamicFields, setDynamicFields] = useState<ClassificationMapping[]>([]);
     const [allAttributes, setAllAttributes] = useState<Attribute[]>([]);
+    const [domainValuesMap, setDomainValuesMap] = useState<Record<string, any[]>>({});
 
     // UI State
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
     const [searchTerm, setSearchTerm] = useState('');
+    const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
+    const [selectedItems, setSelectedItems] = useState<string[]>([]);
+
+    // Filters state
+    const [filters, setFilters] = useState({
+        categoryId: '',
+        locationId: '',
+        statusId: '',
+        minPrice: '',
+        maxPrice: ''
+    });
 
     // Form State
     const [formData, setFormData] = useState({
@@ -52,48 +79,79 @@ const InventoryManager: React.FC = () => {
         attributes: {} as Record<string, any>
     });
 
+    const [selectedDetailItem, setSelectedDetailItem] = useState<InventoryItem | null>(null);
+    const [isScanning, setIsScanning] = useState(false);
+    const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+    const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+    const [isDragging, setIsDragging] = useState(false);
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
+
     useEffect(() => {
         loadData();
     }, []);
 
-    // Cargar campos dinámicos cuando cambia la subcategoría
+    // Cargar campos dinámicos cuando cambia la categoría o subcategoría
     useEffect(() => {
-        if (formData.subcategoryId) {
-            const fields = ClassificationService.getAttributesBySubcategory(formData.subcategoryId, formData.categoryId);
+        const fetchFields = async () => {
+            let fields: ClassificationMapping[] = [];
+            if (formData.subcategoryId) {
+                fields = await ClassificationService.getAttributesBySubcategory(formData.subcategoryId, formData.categoryId);
+            } else if (formData.categoryId) {
+                fields = await ClassificationService.getAttributesByCategory(formData.categoryId);
+            }
+
             setDynamicFields(fields);
 
-            // Inicializar valores de atributos si no existen
-            const newAttrs = { ...formData.attributes };
-            fields.forEach(f => {
-                if (newAttrs[f.attributeId] === undefined) {
-                    newAttrs[f.attributeId] = '';
+            // Cargar valores de dominio para campos de tipo LIST
+            const newDomainMap: Record<string, any[]> = {};
+            for (const field of fields) {
+                const attr = allAttributes.find(a => a.id === field.attributeId);
+                if (attr?.dataType === 'LIST' && attr.domainId) {
+                    newDomainMap[field.attributeId] = await DomainService.getValuesByDomain(attr.domainId);
                 }
-            });
-            setFormData(prev => ({ ...prev, attributes: newAttrs }));
-        } else {
-            setDynamicFields([]);
-        }
-    }, [formData.subcategoryId]);
+            }
+            setDomainValuesMap(newDomainMap);
 
-    const loadData = () => {
-        setItems(InventoryService.getAll());
-        setCategories(CategoryService.getAll());
-        setSubcategories(SubcategoryService.getAll());
-        setLocations(LocationService.getAll());
-        setStatuses(OperationalStatusService.getAll());
-        setAllAttributes(AttributeService.getAll());
+            if (fields.length > 0) {
+                const newAttrs = { ...formData.attributes };
+                fields.forEach(f => {
+                    if (newAttrs[f.attributeId] === undefined) {
+                        newAttrs[f.attributeId] = '';
+                    }
+                });
+                setFormData(prev => ({ ...prev, attributes: newAttrs }));
+            }
+        };
+        fetchFields();
+    }, [formData.subcategoryId, formData.categoryId, allAttributes]);
+
+    const loadData = async () => {
+        setItems(await InventoryService.getAll());
+        setCategories(await CategoryService.getAll());
+        setSubcategories(await SubcategoryService.getAll());
+        setLocations(await LocationService.getAll());
+        setStatuses(await OperationalStatusService.getAll());
+        setAllAttributes(await AttributeService.getAll());
     };
 
-    const handleCreate = (e: React.FormEvent) => {
+    const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
-        InventoryService.create({
-            ...formData,
-            images: [],
-            createdBy: 'admin'
-        });
-        setIsAddModalOpen(false);
-        resetForm();
-        loadData();
+        setIsScanning(true); // Usar loading state para creación también si se prefiere
+        try {
+            await InventoryService.create({
+                ...formData,
+                images: [],
+                createdBy: 'admin'
+            });
+            setIsAddModalOpen(false);
+            resetForm();
+            await loadData();
+        } catch (error) {
+            console.error("Error creating item:", error);
+            alert("No se pudo crear la pieza.");
+        } finally {
+            setIsScanning(false);
+        }
     };
 
     const resetForm = () => {
@@ -122,10 +180,106 @@ const InventoryManager: React.FC = () => {
         }));
     };
 
-    const filteredItems = items.filter(item =>
-        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.itemCode.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const fileToBase64 = (file: File): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = error => reject(error);
+        });
+    };
+
+    const handleAIAnalysis = async (file: File) => {
+        setIsScanning(true);
+        try {
+            const base64 = await fileToBase64(file);
+            const result = await AIService.analyzeImage(base64);
+
+            setFormData(prev => ({
+                ...prev,
+                name: result.name || prev.name,
+                description: result.description || prev.description,
+                categoryId: result.categoryId || prev.categoryId,
+                subcategoryId: result.subcategoryId || prev.subcategoryId,
+                attributes: {
+                    ...prev.attributes,
+                    ...result.attributes
+                }
+            }));
+        } catch (error) {
+            console.error("Error en análisis IA:", error);
+            alert("No se pudo completar el análisis de la imagen.");
+        } finally {
+            setIsScanning(false);
+        }
+    };
+
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files.length > 0) {
+            const files = Array.from(e.target.files);
+            const urls = files.map(file => URL.createObjectURL(file));
+            setUploadedImages(prev => [...prev, ...urls]);
+            setUploadedFiles(prev => [...prev, ...files]);
+
+            // Trigger real AI Analysis on first upload
+            if (uploadedImages.length === 0) {
+                handleAIAnalysis(files[0]);
+            }
+        }
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(false);
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            const files = Array.from(e.dataTransfer.files);
+            const urls = files.map(file => URL.createObjectURL(file));
+            setUploadedImages(prev => [...prev, ...urls]);
+            setUploadedFiles(prev => [...prev, ...files]);
+
+            // Trigger real AI Analysis on drop
+            if (uploadedImages.length === 0) {
+                handleAIAnalysis(files[0]);
+            }
+        }
+    };
+
+    const simulateAIScan = () => {
+        if (uploadedFiles.length > 0) {
+            handleAIAnalysis(uploadedFiles[0]);
+        } else {
+            alert("Sube una imagen primero para analizarla con IA.");
+        }
+    };
+
+    const filteredItems = items.filter(item => {
+        const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            item.itemCode.toLowerCase().includes(searchTerm.toLowerCase());
+
+        const matchesCategory = !filters.categoryId || item.categoryId === filters.categoryId;
+        const matchesLocation = !filters.locationId || item.locationId === filters.locationId;
+        const matchesStatus = !filters.statusId || item.statusId === filters.statusId;
+
+        const price = item.salePrice || 0;
+        const matchesMinPrice = !filters.minPrice || price >= parseFloat(filters.minPrice);
+        const matchesMaxPrice = !filters.maxPrice || price <= parseFloat(filters.maxPrice);
+
+        return matchesSearch && matchesCategory && matchesLocation && matchesStatus && matchesMinPrice && matchesMaxPrice;
+    });
+
+    const toggleSelectAll = () => {
+        if (selectedItems.length === filteredItems.length) {
+            setSelectedItems([]);
+        } else {
+            setSelectedItems(filteredItems.map(item => item.id));
+        }
+    };
+
+    const toggleSelectItem = (id: string) => {
+        setSelectedItems(prev =>
+            prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+        );
+    };
 
     const getCategoryName = (id: string) => categories.find(c => c.id === id)?.name || 'N/A';
     const getLocationName = (id: string) => locations.find(l => l.id === id)?.name || 'N/A';
@@ -150,7 +304,7 @@ const InventoryManager: React.FC = () => {
                         style={{ width: '100%' }}
                     >
                         <option value="">Seleccione...</option>
-                        {DomainService.getValuesByDomain((attributeItem as any).domainId || '').map((v: any) => (
+                        {(domainValuesMap[attributeItem.id] || []).map((v: any) => (
                             <option key={v.id} value={v.value}>{v.value}</option>
                         ))}
                     </select>
@@ -238,10 +392,57 @@ const InventoryManager: React.FC = () => {
                         onChange={e => setSearchTerm(e.target.value)}
                     />
                 </div>
-                <button className="btn" style={{ border: '1px solid #ddd' }}>
-                    <Filter size={18} /> Filtros
+                <button className="btn" style={{ border: '1px solid #ddd' }} onClick={() => setIsFilterDrawerOpen(true)}>
+                    <Filter size={18} /> Filtros {Object.values(filters).filter(f => f !== '').length > 0 && `(${Object.values(filters).filter(f => f !== '').length})`}
                 </button>
             </div>
+
+            {/* Bulk Actions Bar */}
+            {selectedItems.length > 0 && (
+                <div style={{
+                    position: 'fixed',
+                    bottom: '32px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    zIndex: 100,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '24px',
+                    padding: '16px 32px',
+                    backgroundColor: 'var(--primary)',
+                    borderRadius: '50px',
+                    boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
+                    color: 'white'
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', borderRight: '1px solid rgba(255,255,255,0.2)', paddingRight: '24px' }}>
+                        <span style={{ fontWeight: 600 }}>{selectedItems.length} seleccionados</span>
+                        <button
+                            onClick={() => setSelectedItems([])}
+                            style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.6)', cursor: 'pointer', display: 'flex' }}
+                        >
+                            <X size={16} />
+                        </button>
+                    </div>
+                    <div style={{ display: 'flex', gap: '20px' }}>
+                        <button className="bulk-btn" title="Cambiar Ubicación/Estado">
+                            <MapPin size={18} />
+                            <span>Mover</span>
+                        </button>
+                        <button className="bulk-btn" title="Imprimir Etiquetas">
+                            <Printer size={18} />
+                            <span>Etiquetas</span>
+                        </button>
+                        <button className="bulk-btn" title="Exportar">
+                            <Download size={18} />
+                            <span>Exportar</span>
+                        </button>
+                        <button className="bulk-btn" style={{ color: '#ff4d4d' }} title="Eliminar">
+                            <Trash2 size={18} />
+                            <span>Borrar</span>
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* Content List */}
             {filteredItems.length === 0 ? (
@@ -257,7 +458,39 @@ const InventoryManager: React.FC = () => {
                     gap: '24px'
                 }}>
                     {filteredItems.map(item => (
-                        <div key={item.id} className="glass-card" style={{ padding: '0', overflow: 'hidden', marginBottom: viewMode === 'list' ? '16px' : '0' }}>
+                        <div
+                            key={item.id}
+                            className={`glass-card item-card ${selectedItems.includes(item.id) ? 'selected' : ''}`}
+                            onClick={(e) => {
+                                if (e.ctrlKey || e.metaKey) {
+                                    toggleSelectItem(item.id);
+                                }
+                            }}
+                            style={{ padding: '0', overflow: 'hidden', marginBottom: viewMode === 'list' ? '16px' : '0', cursor: 'pointer', position: 'relative' }}
+                        >
+                            {/* Selection Checkbox */}
+                            <div
+                                onClick={(e) => { e.stopPropagation(); toggleSelectItem(item.id); }}
+                                style={{
+                                    position: 'absolute',
+                                    top: '12px',
+                                    right: '12px',
+                                    zIndex: 10,
+                                    width: '24px',
+                                    height: '24px',
+                                    borderRadius: '6px',
+                                    border: '2px solid white',
+                                    backgroundColor: selectedItems.includes(item.id) ? 'var(--accent)' : 'rgba(0,0,0,0.2)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                {selectedItems.includes(item.id) && <Check size={16} color="white" strokeWidth={3} />}
+                            </div>
+
                             <div style={{ height: '180px', backgroundColor: '#f9f9f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ccc', position: 'relative' }}>
                                 <ImageIcon size={48} />
                                 <div style={{ position: 'absolute', top: '12px', left: '12px' }}>
@@ -272,8 +505,23 @@ const InventoryManager: React.FC = () => {
                                         {item.itemCode}
                                     </span>
                                 </div>
+                                {new Date().getTime() - new Date(item.createdAt || 0).getTime() < 172800000 && (
+                                    <div style={{ position: 'absolute', top: '12px', left: '80px' }}>
+                                        <span style={{
+                                            padding: '4px 10px',
+                                            borderRadius: '20px',
+                                            backgroundColor: 'var(--success)',
+                                            color: 'white',
+                                            fontSize: '10px',
+                                            fontWeight: 800,
+                                            textTransform: 'uppercase'
+                                        }}>
+                                            Nuevo
+                                        </span>
+                                    </div>
+                                )}
                             </div>
-                            <div style={{ padding: '20px' }}>
+                            <div style={{ padding: '20px' }} onClick={() => setSelectedDetailItem(item)}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                                     <span style={{ fontSize: '11px', color: 'var(--accent)', fontWeight: 700 }}>{getCategoryName(item.categoryId)}</span>
                                     <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{getStatusName(item.statusId)}</span>
@@ -306,11 +554,104 @@ const InventoryManager: React.FC = () => {
                 }}>
                     <div className="glass-card" style={{ padding: '40px', width: '800px', backgroundColor: 'white', maxHeight: '90vh', overflowY: 'auto' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
-                            <h2 style={{ margin: 0 }}>Alta de Nueva Pieza</h2>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                <h2 style={{ margin: 0 }}>Alta de Nueva Pieza</h2>
+                                <button
+                                    type="button"
+                                    className="btn btn-accent"
+                                    style={{ padding: '6px 16px', fontSize: '12px' }}
+                                    onClick={simulateAIScan}
+                                    disabled={isScanning}
+                                >
+                                    <Cpu size={14} /> {isScanning ? 'Escaneando...' : 'Autocompletar con IA'}
+                                </button>
+                                <button
+                                    type="button"
+                                    className="btn"
+                                    style={{ padding: '6px 16px', fontSize: '12px', border: '1px solid #ddd' }}
+                                    onClick={() => {
+                                        if (items.length > 0) {
+                                            const lastItem = items[items.length - 1];
+                                            setFormData({
+                                                ...formData,
+                                                name: `${lastItem.name} (Copia)`,
+                                                categoryId: lastItem.categoryId,
+                                                subcategoryId: lastItem.subcategoryId,
+                                                locationId: lastItem.locationId,
+                                                purchasePrice: lastItem.purchasePrice,
+                                                salePrice: lastItem.salePrice,
+                                                mainWeight: lastItem.mainWeight,
+                                                attributes: { ...lastItem.attributes }
+                                            });
+                                        }
+                                    }}
+                                >
+                                    <Copy size={14} /> Duplicar Último
+                                </button>
+                                <button
+                                    type="button"
+                                    className="btn"
+                                    style={{ padding: '6px 16px', fontSize: '12px', border: '1px solid #ddd' }}
+                                    onClick={resetForm}
+                                >
+                                    <RotateCcw size={14} /> Limpiar
+                                </button>
+                            </div>
                             <button className="btn" onClick={() => setIsAddModalOpen(false)}>Esc</button>
                         </div>
 
                         <form onSubmit={handleCreate}>
+                            <div style={{ marginBottom: '32px' }}>
+                                <label style={{ display: 'block', marginBottom: '12px', fontWeight: 600 }}>Media (Fotos de la Pieza)</label>
+                                <input
+                                    type="file"
+                                    multiple
+                                    ref={fileInputRef}
+                                    style={{ display: 'none' }}
+                                    onChange={handleFileSelect}
+                                    accept="image/*"
+                                />
+                                <div style={{
+                                    border: isDragging ? '2px solid var(--accent)' : '2px dashed #ddd',
+                                    borderRadius: '12px',
+                                    padding: '40px',
+                                    textAlign: 'center',
+                                    backgroundColor: isDragging ? 'var(--accent-light)' : '#fafafa',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s',
+                                    opacity: isDragging ? 0.7 : 1
+                                }}
+                                    className="upload-zone"
+                                    onClick={() => fileInputRef.current?.click()}
+                                    onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                                    onDragLeave={() => setIsDragging(false)}
+                                    onDrop={handleDrop}
+                                >
+                                    <ImagePlus size={40} color="var(--text-muted)" style={{ marginBottom: '12px' }} />
+                                    <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '14px' }}>
+                                        Arrastra las fotos aquí o <strong>haz clic para explorar</strong>
+                                    </p>
+                                    <p style={{ marginTop: '4px', color: '#999', fontSize: '11px' }}>Soporta múltiples imágenes JPG, PNG (Max 5MB)</p>
+                                </div>
+
+                                {uploadedImages.length > 0 && (
+                                    <div style={{ display: 'flex', gap: '12px', marginTop: '16px', overflowX: 'auto', paddingBottom: '8px' }}>
+                                        {uploadedImages.map((src, idx) => (
+                                            <div key={idx} style={{ position: 'relative', flexShrink: 0 }}>
+                                                <img src={src} style={{ width: '80px', height: '80px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #eee' }} />
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => { e.stopPropagation(); setUploadedImages(prev => prev.filter((_, i) => i !== idx)); }}
+                                                    style={{ position: 'absolute', top: '-6px', right: '-6px', width: '20px', height: '20px', borderRadius: '50%', backgroundColor: 'var(--error)', color: 'white', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '10px' }}
+                                                >
+                                                    <X size={12} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px' }}>
                                 {/* Columna Izquierda: Identificación y Clasificación */}
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -407,8 +748,11 @@ const InventoryManager: React.FC = () => {
                                     </div>
 
                                     <div style={{ backgroundColor: '#fff8f0', padding: '24px', borderRadius: '12px', border: '1px solid #ffe8cc' }}>
-                                        <label style={{ display: 'block', marginBottom: '16px', fontWeight: 600, color: '#e67e22' }}>Valoración Aduanera / Venta</label>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                                            <label style={{ fontWeight: 600, color: '#e67e22', margin: 0 }}>Valoración y Margen</label>
+                                            <Calculator size={16} color="#e67e22" />
+                                        </div>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
                                             <div>
                                                 <span style={{ fontSize: '11px', color: '#666', fontWeight: 600 }}>COSTE (€)</span>
                                                 <input
@@ -432,6 +776,15 @@ const InventoryManager: React.FC = () => {
                                                 />
                                             </div>
                                         </div>
+                                        <div style={{ padding: '12px', backgroundColor: 'rgba(230, 126, 34, 0.05)', borderRadius: '8px', border: '1px solid rgba(230, 126, 34, 0.1)' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                                                <span style={{ color: '#666' }}>Margen Bruto:</span>
+                                                <span style={{ fontWeight: 700, color: '#27ae60' }}>
+                                                    {((formData.salePrice - formData.purchasePrice) || 0).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}
+                                                    ({formData.purchasePrice > 0 ? (((formData.salePrice - formData.purchasePrice) / formData.purchasePrice) * 100).toFixed(1) : 0}%)
+                                                </span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -446,6 +799,250 @@ const InventoryManager: React.FC = () => {
                     </div>
                 </div>
             )}
+
+            {/* Filter Drawer */}
+            {isFilterDrawerOpen && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: 'rgba(0,0,0,0.4)', zIndex: 2000,
+                    display: 'flex', justifyContent: 'flex-end'
+                }} onClick={() => setIsFilterDrawerOpen(false)}>
+                    <div
+                        style={{
+                            width: '400px', height: '100%', backgroundColor: 'white',
+                            padding: '40px', display: 'flex', flexDirection: 'column',
+                            boxShadow: '-10px 0 40px rgba(0,0,0,0.1)',
+                            animation: 'slideIn 0.3s ease-out'
+                        }}
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+                            <h2 style={{ margin: 0 }}>Filtros Avanzados</h2>
+                            <button className="btn" onClick={() => setIsFilterDrawerOpen(false)}>
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600 }}>Categoría</label>
+                                <select
+                                    value={filters.categoryId}
+                                    onChange={e => setFilters({ ...filters, categoryId: e.target.value })}
+                                    className="form-control"
+                                >
+                                    <option value="">Todas las categorías</option>
+                                    {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600 }}>Ubicación</label>
+                                <select
+                                    value={filters.locationId}
+                                    onChange={e => setFilters({ ...filters, locationId: e.target.value })}
+                                    className="form-control"
+                                >
+                                    <option value="">Todas las ubicaciones</option>
+                                    {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600 }}>Estado</label>
+                                <select
+                                    value={filters.statusId}
+                                    onChange={e => setFilters({ ...filters, statusId: e.target.value })}
+                                    className="form-control"
+                                >
+                                    <option value="">Todos los estados</option>
+                                    {statuses.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600 }}>Rango de Precio (€)</label>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                    <input
+                                        type="number"
+                                        placeholder="Min"
+                                        value={filters.minPrice}
+                                        onChange={e => setFilters({ ...filters, minPrice: e.target.value })}
+                                    />
+                                    <input
+                                        type="number"
+                                        placeholder="Max"
+                                        value={filters.maxPrice}
+                                        onChange={e => setFilters({ ...filters, maxPrice: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style={{ marginTop: '40px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                            <button
+                                className="btn"
+                                style={{ justifyContent: 'center' }}
+                                onClick={() => setFilters({ categoryId: '', locationId: '', statusId: '', minPrice: '', maxPrice: '' })}
+                            >
+                                Limpiar
+                            </button>
+                            <button
+                                className="btn btn-primary"
+                                style={{ justifyContent: 'center' }}
+                                onClick={() => setIsFilterDrawerOpen(false)}
+                            >
+                                Aplicar Filtros
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Quick View Drawer */}
+            {selectedDetailItem && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: 'rgba(0,0,0,0.4)', zIndex: 1500,
+                    display: 'flex', justifyContent: 'flex-end'
+                }} onClick={() => setSelectedDetailItem(null)}>
+                    <div
+                        style={{
+                            width: '600px', height: '100%', backgroundColor: 'white',
+                            display: 'flex', flexDirection: 'column',
+                            boxShadow: '-10px 0 40px rgba(0,0,0,0.1)',
+                            animation: 'slideIn 0.3s ease-out',
+                            position: 'relative'
+                        }}
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <button
+                            onClick={() => setSelectedDetailItem(null)}
+                            style={{
+                                position: 'absolute', top: '20px', left: '-50px',
+                                width: '40px', height: '40px', borderRadius: '50%',
+                                backgroundColor: 'white', border: 'none', cursor: 'pointer',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                boxShadow: '-2px 0 10px rgba(0,0,0,0.1)'
+                            }}
+                        >
+                            <X size={20} />
+                        </button>
+
+                        <div style={{ height: '300px', backgroundColor: '#f9f9f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ccc' }}>
+                            <ImageIcon size={64} />
+                        </div>
+
+                        <div style={{ padding: '40px', flex: 1, overflowY: 'auto' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
+                                <div>
+                                    <span style={{ fontSize: '12px', color: 'var(--accent)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                                        {getCategoryName(selectedDetailItem.categoryId)}
+                                    </span>
+                                    <h2 style={{ fontSize: '24px', margin: '4px 0 8px 0' }}>{selectedDetailItem.name}</h2>
+                                    <code style={{ fontSize: '12px', backgroundColor: '#f1f1f1', padding: '2px 8px', borderRadius: '4px' }}>{selectedDetailItem.itemCode}</code>
+                                </div>
+                                <div style={{ textAlign: 'right' }}>
+                                    <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--primary)' }}>
+                                        {selectedDetailItem.salePrice?.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}
+                                    </div>
+                                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>PVP Estimado</span>
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '32px' }}>
+                                <div className="glass-card" style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px', border: '1px solid #eee' }}>
+                                    <MapPin size={18} color="var(--text-muted)" />
+                                    <div>
+                                        <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>UBICACIÓN</div>
+                                        <div style={{ fontSize: '13px', fontWeight: 600 }}>{getLocationName(selectedDetailItem.locationId)}</div>
+                                    </div>
+                                </div>
+                                <div className="glass-card" style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px', border: '1px solid #eee' }}>
+                                    <Tag size={18} color="var(--text-muted)" />
+                                    <div>
+                                        <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>ESTADO</div>
+                                        <div style={{ fontSize: '13px', fontWeight: 600 }}>{getStatusName(selectedDetailItem.statusId)}</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style={{ marginBottom: '32px' }}>
+                                <h4 style={{ fontSize: '14px', marginBottom: '12px', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Descripción Técnica</h4>
+                                <p style={{ fontSize: '15px', lineHeight: '1.6', color: '#444' }}>{selectedDetailItem.description}</p>
+                            </div>
+
+                            {Object.keys(selectedDetailItem.attributes || {}).length > 0 && (
+                                <div>
+                                    <h4 style={{ fontSize: '14px', marginBottom: '12px', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Especificaciones</h4>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                        {Object.entries(selectedDetailItem.attributes).map(([key, value]) => {
+                                            const attr = allAttributes.find(a => a.id === key);
+                                            return (
+                                                <div key={key} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f1f1f1' }}>
+                                                    <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{attr?.name || key}</span>
+                                                    <span style={{ fontSize: '13px', fontWeight: 600 }}>{String(value)}</span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div style={{ padding: '24px 40px', borderTop: '1px solid #eee', display: 'flex', gap: '12px' }}>
+                            <button className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }}>
+                                Editar Ficha
+                            </button>
+                            <button className="btn" style={{ flex: 1, justifyContent: 'center', border: '1px solid #ddd' }}>
+                                Ver Historial
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <style>
+                {`
+                @keyframes slideIn {
+                    from { transform: translateX(100%); }
+                    to { transform: translateX(0); }
+                }
+                .bulk-btn {
+                    background: transparent;
+                    border: none;
+                    color: white;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 4px;
+                    cursor: pointer;
+                    font-size: 10px;
+                    font-weight: 600;
+                    text-transform: uppercase;
+                    transition: opacity 0.2s;
+                    padding: 0 8px;
+                }
+                .bulk-btn:hover {
+                    opacity: 0.8;
+                }
+                .item-card {
+                    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+                }
+                .item-card:hover {
+                    transform: translateY(-4px);
+                }
+                .item-card.selected {
+                    border: 2px solid var(--accent) !important;
+                    background-color: rgba(212, 175, 55, 0.02) !important;
+                }
+                .upload-zone:hover {
+                    border-color: var(--accent) !important;
+                    background-color: var(--accent-light) !important;
+                    opacity: 0.7;
+                }
+                `}
+            </style>
         </div>
     );
 };

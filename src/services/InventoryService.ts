@@ -1,64 +1,114 @@
+import { db } from '../firebase';
+import { collection, getDocs, getDoc, doc, addDoc, updateDoc, query, where, serverTimestamp } from 'firebase/firestore';
 import { InventoryItem } from '../models/schema';
 
-// Simulación de persistencia
-let items: InventoryItem[] = [];
+const COLLECTION_NAME = 'inventory';
 
 export const InventoryService = {
-    getAll: (): InventoryItem[] => items.filter(i => i.isActive),
-
-    getById: (id: string): InventoryItem | undefined => items.find(i => i.id === id && i.isActive),
-
-    getByCode: (code: string): InventoryItem | undefined => items.find(i => i.itemCode === code && i.isActive),
-
-    /**
-     * Genera un código único basado en el año y un secuencial.
-     * En un sistema real, esto consultaría el último ID en DB.
-     */
-    generateItemCode: (): string => {
-        const year = new Date().getFullYear();
-        const count = items.length + 1;
-        const sequence = count.toString().padStart(4, '0');
-        return `LD-${year}-${sequence}`;
+    getAll: async (): Promise<InventoryItem[]> => {
+        const q = query(collection(db, COLLECTION_NAME), where('isActive', '==', true));
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map(doc => ({
+            ...doc.data(),
+            id: doc.id,
+            createdAt: doc.data().createdAt?.toDate(),
+            updatedAt: doc.data().updatedAt?.toDate()
+        })) as InventoryItem[];
     },
 
-    create: (data: Omit<InventoryItem, 'id' | 'itemCode' | 'qrCode' | 'isActive' | 'createdAt' | 'updatedAt'>): InventoryItem => {
-        const id = crypto.randomUUID();
-        const itemCode = InventoryService.generateItemCode();
-
-        const newItem: InventoryItem = {
-            ...data,
-            id,
-            itemCode,
-            qrCode: `https://les.londor.com/i/${id}`, // URL base para QR
-            isActive: true,
-            createdAt: new Date(),
-            updatedAt: new Date()
-        };
-
-        items.push(newItem);
-        return newItem;
-    },
-
-    update: (id: string, updates: Partial<InventoryItem>): InventoryItem | undefined => {
-        const index = items.findIndex(i => i.id === id);
-        if (index !== -1) {
-            items[index] = {
-                ...items[index],
-                ...updates,
-                updatedAt: new Date()
-            };
-            return items[index];
+    getById: async (id: string): Promise<InventoryItem | undefined> => {
+        const docRef = doc(db, COLLECTION_NAME, id);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists() && docSnap.data().isActive) {
+            return {
+                ...docSnap.data(),
+                id: docSnap.id,
+                createdAt: docSnap.data().createdAt?.toDate(),
+                updatedAt: docSnap.data().updatedAt?.toDate()
+            } as InventoryItem;
         }
         return undefined;
     },
 
-    deleteLogic: (id: string): boolean => {
-        const index = items.findIndex(i => i.id === id);
-        if (index !== -1) {
-            items[index].isActive = false;
-            items[index].updatedAt = new Date();
-            return true;
+    getByCode: async (code: string): Promise<InventoryItem | undefined> => {
+        const q = query(collection(db, COLLECTION_NAME), where('itemCode', '==', code), where('isActive', '==', true));
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+            const doc = querySnapshot.docs[0];
+            return {
+                ...doc.data(),
+                id: doc.id,
+                createdAt: doc.data().createdAt?.toDate(),
+                updatedAt: doc.data().updatedAt?.toDate()
+            } as InventoryItem;
         }
-        return false;
+        return undefined;
+    },
+
+    generateItemCode: async (): Promise<string> => {
+        const year = new Date().getFullYear();
+        const q = query(collection(db, COLLECTION_NAME));
+        const querySnapshot = await getDocs(q);
+        const count = querySnapshot.size + 1;
+        const sequence = count.toString().padStart(4, '0');
+        return `LD-${year}-${sequence}`;
+    },
+
+    create: async (data: Omit<InventoryItem, 'id' | 'itemCode' | 'qrCode' | 'isActive' | 'createdAt' | 'updatedAt'>): Promise<InventoryItem> => {
+        const itemCode = await InventoryService.generateItemCode();
+
+        const docRef = await addDoc(collection(db, COLLECTION_NAME), {
+            ...data,
+            itemCode,
+            isActive: true,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+        });
+
+        const id = docRef.id;
+        // Update with qrCode using the real ID
+        const qrCode = `https://les.londor.com/i/${id}`;
+        await updateDoc(docRef, { qrCode });
+
+        const finalizedDoc = await getDoc(docRef);
+        return {
+            ...finalizedDoc.data(),
+            id,
+            qrCode,
+            createdAt: new Date(), // Using approximate since serverTimestamp is async
+            updatedAt: new Date()
+        } as InventoryItem;
+    },
+
+    update: async (id: string, updates: Partial<InventoryItem>): Promise<InventoryItem | undefined> => {
+        const docRef = doc(db, COLLECTION_NAME, id);
+        await updateDoc(docRef, {
+            ...updates,
+            updatedAt: serverTimestamp()
+        });
+
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            return {
+                ...docSnap.data(),
+                id: docSnap.id,
+                createdAt: docSnap.data().createdAt?.toDate(),
+                updatedAt: docSnap.data().updatedAt?.toDate()
+            } as InventoryItem;
+        }
+        return undefined;
+    },
+
+    deleteLogic: async (id: string): Promise<boolean> => {
+        const docRef = doc(db, COLLECTION_NAME, id);
+        try {
+            await updateDoc(docRef, {
+                isActive: false,
+                updatedAt: serverTimestamp()
+            });
+            return true;
+        } catch (e) {
+            return false;
+        }
     }
 };

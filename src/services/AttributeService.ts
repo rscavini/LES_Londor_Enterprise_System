@@ -1,7 +1,10 @@
-import { Attribute, DataType } from '../models/schema';
+import { db } from '../firebase';
+import { collection, getDocs, getDoc, doc, addDoc, updateDoc, query, where, serverTimestamp, setDoc } from 'firebase/firestore';
+import { Attribute } from '../models/schema';
 
-// Mock de base de datos para Atributos
-let attributes: Attribute[] = [
+const COLLECTION_NAME = 'attributes';
+
+const initialAttributes: Attribute[] = [
     { id: 'attr_mat_pri', name: 'Material Principal', description: 'Metal base de la pieza', dataType: 'LIST', domainId: 'dom_material', isActive: true, createdAt: new Date(), createdBy: 'system' },
     { id: 'attr_ley', name: 'Ley / Quilataje', description: 'Pureza del metal precioso', dataType: 'LIST', domainId: 'dom_ley', isActive: true, createdAt: new Date(), createdBy: 'system' },
     { id: 'attr_col_met', name: 'Color del Metal', description: 'Tonalidad del metal', dataType: 'LIST', domainId: 'dom_color_metal', isActive: true, createdAt: new Date(), createdBy: 'system' },
@@ -20,38 +23,32 @@ let attributes: Attribute[] = [
 ];
 
 export const AttributeService = {
-    getAll: (): Attribute[] => attributes.filter(a => a.isActive),
+    getAll: async (): Promise<Attribute[]> => {
+        const q = query(collection(db, COLLECTION_NAME), where('isActive', '==', true));
+        const querySnapshot = await getDocs(q);
 
-    create: (attr: Omit<Attribute, 'id' | 'createdAt' | 'isActive'>): Attribute => {
-        // R7: Si DataType es LIST, domainId es obligatorio
+        if (querySnapshot.empty) {
+            for (const attr of initialAttributes) {
+                await setDoc(doc(db, COLLECTION_NAME, attr.id), { ...attr, createdAt: serverTimestamp() });
+            }
+            return initialAttributes;
+        }
+
+        return querySnapshot.docs.map(doc => ({
+            ...doc.data(),
+            id: doc.id,
+            createdAt: doc.data().createdAt?.toDate()
+        })) as Attribute[];
+    },
+
+    create: async (attr: Omit<Attribute, 'id' | 'createdAt' | 'isActive'>): Promise<Attribute> => {
         if (attr.dataType === 'LIST' && !attr.domainId) {
             throw new Error('Un atributo de tipo LISTA debe tener un dominio asociado.');
         }
 
-        const newAttr: Attribute = {
-            ...attr,
-            id: `attr_${Date.now()}`,
-            isActive: true,
-            createdAt: new Date()
-        };
-
-        attributes.push(newAttr);
-        return newAttr;
-    },
-
-    update: (id: string, updates: Partial<Attribute>): Attribute | undefined => {
-        const index = attributes.findIndex(a => a.id === id);
-        if (index === -1) return undefined;
-
-        attributes[index] = { ...attributes[index], ...updates };
-        return attributes[index];
-    },
-
-    deleteLogic: (id: string): boolean => {
-        const index = attributes.findIndex(a => a.id === id);
-        if (index === -1) return false;
-
-        attributes[index].isActive = false;
-        return true;
+        const id = `attr_${Date.now()}`;
+        const newAttr = { ...attr, isActive: true, createdAt: serverTimestamp() };
+        await setDoc(doc(db, COLLECTION_NAME, id), newAttr);
+        return { ...newAttr, id, createdAt: new Date() } as Attribute;
     }
 };

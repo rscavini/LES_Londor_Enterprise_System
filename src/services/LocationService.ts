@@ -1,72 +1,30 @@
-import { Location, LocationType, LocationMetadata } from '../models/schema';
+import { db } from '../firebase';
+import { collection, getDocs, getDoc, doc, addDoc, updateDoc, query, where, serverTimestamp, setDoc } from 'firebase/firestore';
+import { Location } from '../models/schema';
 
-let locations: Location[] = [
-    {
-        id: 'loc_taller_unificado',
-        name: 'Joyeros Unificados S.A.',
-        type: 'WORKSHOP',
-        metadata: {
-            contactPerson: 'Julián Rodríguez',
-            phone: '+34 912 345 678',
-            email: 'julian@unificados.com',
-            address: 'Calle de la Platería, 12, Planta 2, 28014 Madrid, España',
-            specialties: ['Pulido', 'Engaste', 'Ajuste de Talla'],
-            rating: 4.8,
-            slaDays: 4
-        },
-        isActive: true,
-        createdAt: new Date(),
-        createdBy: 'system'
-    },
-    {
-        id: 'loc_tienda_madrid',
-        name: 'Londor Madrid - Serrano',
-        type: 'STORE',
-        metadata: {
-            contactPerson: 'Elena Gómez',
-            managerName: 'Elena Gómez',
-            phone: '+34 912 000 111',
-            address: 'Calle de Serrano, 45, 28001 Madrid'
-        },
-        isActive: true,
-        createdAt: new Date(),
-        createdBy: 'system'
-    },
-    { id: 'loc_almacen_central', name: 'Almacén Central', type: 'OTHER', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'loc_transito', name: 'En tránsito', type: 'OTHER', isActive: true, createdAt: new Date(), createdBy: 'system' }
+const COLLECTION_NAME = 'locations';
+
+const initialLocations: Location[] = [
+    { id: 'loc_1', name: 'Tienda Principal', address: 'Calle Mayor 1', type: 'STORE', isActive: true, createdAt: new Date() },
+    { id: 'loc_2', name: 'Almacén Central', address: 'Polígono Ind.', type: 'WAREHOUSE', isActive: true, createdAt: new Date() }
 ];
 
 export const LocationService = {
-    getAll: (): Location[] => locations.filter(l => l.isActive),
+    getAll: async (): Promise<Location[]> => {
+        const q = query(collection(db, COLLECTION_NAME), where('isActive', '==', true));
+        const querySnapshot = await getDocs(q);
 
-    getById: (id: string): Location | undefined => locations.find(l => l.id === id && l.isActive),
-
-    create: (data: Omit<Location, 'id' | 'createdAt' | 'isActive'>): Location => {
-        const newLoc: Location = {
-            ...data,
-            id: `loc_${Date.now()}`,
-            isActive: true,
-            createdAt: new Date()
-        };
-        locations.push(newLoc);
-        return newLoc;
-    },
-
-    update: (id: string, updates: Partial<Location>): Location | undefined => {
-        const index = locations.findIndex(l => l.id === id);
-        if (index !== -1) {
-            locations[index] = { ...locations[index], ...updates };
-            return locations[index];
+        if (querySnapshot.empty) {
+            for (const loc of initialLocations) {
+                await setDoc(doc(db, COLLECTION_NAME, loc.id), { ...loc, createdAt: serverTimestamp() });
+            }
+            return initialLocations;
         }
-        return undefined;
-    },
 
-    deleteLogic: (id: string): boolean => {
-        const index = locations.findIndex(l => l.id === id);
-        if (index !== -1) {
-            locations[index].isActive = false;
-            return true;
-        }
-        return false;
+        return querySnapshot.docs.map(doc => ({
+            ...doc.data(),
+            id: doc.id,
+            createdAt: doc.data().createdAt?.toDate()
+        })) as Location[];
     }
 };
