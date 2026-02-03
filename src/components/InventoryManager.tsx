@@ -126,12 +126,21 @@ const InventoryManager: React.FC = () => {
     }, [formData.subcategoryId, formData.categoryId, allAttributes]);
 
     const loadData = async () => {
-        setItems(await InventoryService.getAll());
-        setCategories(await CategoryService.getAll());
-        setSubcategories(await SubcategoryService.getAll());
-        setLocations(await LocationService.getAll());
-        setStatuses(await OperationalStatusService.getAll());
-        setAllAttributes(await AttributeService.getAll());
+        try {
+            setItems(await InventoryService.getAll());
+            setCategories(await CategoryService.getAll());
+            setSubcategories(await SubcategoryService.getAll());
+            setLocations(await LocationService.getAll());
+            setStatuses(await OperationalStatusService.getAll());
+            setAllAttributes(await AttributeService.getAll());
+        } catch (error: any) {
+            console.error("Error loading initial data:", error);
+            if (error.message?.includes("permissions")) {
+                alert("Error de permisos en Firestore. Asegúrate de que las reglas de seguridad permitan el acceso de lectura/escritura.");
+            } else {
+                alert("Error al cargar los datos del inventario.");
+            }
+        }
     };
 
     const handleCreate = async (e: React.FormEvent) => {
@@ -193,7 +202,8 @@ const InventoryManager: React.FC = () => {
         setIsScanning(true);
         try {
             const base64 = await fileToBase64(file);
-            const result = await AIService.analyzeImage(base64);
+            // Pasar también el tipo MIME real del archivo
+            const result = await AIService.analyzeImage(base64, file.type);
 
             setFormData(prev => ({
                 ...prev,
@@ -206,9 +216,9 @@ const InventoryManager: React.FC = () => {
                     ...result.attributes
                 }
             }));
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error en análisis IA:", error);
-            alert("No se pudo completar el análisis de la imagen.");
+            alert(error.message || "No se pudo completar el análisis de la imagen.");
         } finally {
             setIsScanning(false);
         }

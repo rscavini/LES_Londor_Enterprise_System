@@ -16,8 +16,8 @@ export interface AIAnalysisResult {
 }
 
 export const AIService = {
-    analyzeImage: async (base64Image: string): Promise<AIAnalysisResult> => {
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    analyzeImage: async (base64Image: string, mimeType: string = "image/jpeg"): Promise<AIAnalysisResult> => {
+        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
         const categories = await CategoryService.getAll();
         const subcategories = await SubcategoryService.getAll();
@@ -54,18 +54,20 @@ export const AIService = {
                 {
                     inlineData: {
                         data: base64Image.split(',')[1] || base64Image,
-                        mimeType: "image/jpeg"
+                        mimeType: mimeType
                     }
                 }
             ]);
 
             const responseText = result.response.text();
+            console.log("Gemini Response Raw:", responseText);
+
             // Limpiar posible markdown si Gemini lo incluye
             const jsonStr = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
             return JSON.parse(jsonStr) as AIAnalysisResult;
-        } catch (error) {
-            console.error("Error en análisis de Gemini:", error);
-            throw new Error("No se pudo completar el análisis de la imagen.");
+        } catch (error: any) {
+            console.error("Error detallado en análisis de Gemini:", error);
+            throw new Error(`Error Gemini: ${error.message || "No se pudo completar el análisis"}`);
         }
     }
 };
