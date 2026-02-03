@@ -22,7 +22,16 @@ const initialMappings: ClassificationMapping[] = [
     { categoryId: '', subcategoryId: 'sub_an_solitario', attributeId: 'attr_tip_pie', isMandatory: true, sortOrder: 3 },
     { categoryId: '', subcategoryId: 'sub_an_solitario', attributeId: 'attr_for_pie', isMandatory: false, sortOrder: 4 },
     { categoryId: 'cat_relojes', subcategoryId: '', attributeId: 'attr_mat_pri', isMandatory: true, sortOrder: 0 },
-    { categoryId: 'cat_relojes', subcategoryId: '', attributeId: 'attr_acabado', isMandatory: false, sortOrder: 1 }
+    { categoryId: 'cat_relojes', subcategoryId: '', attributeId: 'attr_acabado', isMandatory: false, sortOrder: 1 },
+    // PENDIENTES
+    { categoryId: 'cat_pendientes', subcategoryId: '', attributeId: 'attr_mat_pri', isMandatory: true, sortOrder: 0 },
+    { categoryId: 'cat_pendientes', subcategoryId: '', attributeId: 'attr_ley', isMandatory: true, sortOrder: 1 },
+    // COLLARES
+    { categoryId: 'cat_collares', subcategoryId: '', attributeId: 'attr_mat_pri', isMandatory: true, sortOrder: 0 },
+    { categoryId: 'cat_collares', subcategoryId: '', attributeId: 'attr_ley', isMandatory: true, sortOrder: 1 },
+    // COLGANTES
+    { categoryId: 'cat_colgantes', subcategoryId: '', attributeId: 'attr_mat_pri', isMandatory: true, sortOrder: 0 },
+    { categoryId: 'cat_colgantes', subcategoryId: '', attributeId: 'attr_ley', isMandatory: true, sortOrder: 1 }
 ];
 
 export const ClassificationService = {

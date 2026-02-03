@@ -17,9 +17,17 @@ const LocationStatusManager: React.FC = () => {
         loadData();
     }, []);
 
-    const loadData = () => {
-        setLocations(LocationService.getAll());
-        setStatuses(OperationalStatusService.getAll());
+    const loadData = async () => {
+        try {
+            const [locs, stats] = await Promise.all([
+                LocationService.getAll(),
+                OperationalStatusService.getAll()
+            ]);
+            setLocations(locs);
+            setStatuses(stats);
+        } catch (error) {
+            console.error("Error loading locations/statuses:", error);
+        }
     };
 
     const handleOpenModal = (item?: Location) => {
@@ -31,14 +39,14 @@ const LocationStatusManager: React.FC = () => {
         setIsModalOpen(true);
     };
 
-    const handleSaveList = () => {
+    const handleSaveList = async () => {
         if (!modalData.name.trim()) return;
 
         if (view === 'locations') {
             if (modalData.id) {
-                LocationService.update(modalData.id, { name: modalData.name, type: modalData.type });
+                await LocationService.update(modalData.id, { name: modalData.name, type: modalData.type });
             } else {
-                LocationService.create({
+                await LocationService.create({
                     name: modalData.name,
                     type: modalData.type,
                     createdBy: 'user',
@@ -47,33 +55,34 @@ const LocationStatusManager: React.FC = () => {
             }
         } else {
             if (modalData.id) {
-                OperationalStatusService.update(modalData.id, modalData.name);
+                await OperationalStatusService.update(modalData.id, modalData.name);
             } else {
-                OperationalStatusService.create(modalData.name);
+                await OperationalStatusService.create(modalData.name);
             }
         }
 
-        loadData();
+        await loadData();
         setIsModalOpen(false);
     };
 
-    const handleSaveDetail = (updates: Partial<Location>) => {
+    const handleSaveDetail = async (updates: Partial<Location>) => {
         if (selectedLocation) {
-            LocationService.update(selectedLocation.id, updates);
-            loadData();
-            setSelectedLocation(LocationService.getById(selectedLocation.id) || null);
+            await LocationService.update(selectedLocation.id, updates);
+            await loadData();
+            const updated = await LocationService.getById(selectedLocation.id);
+            setSelectedLocation(updated || null);
         }
     };
 
-    const handleDelete = (id: string, e: React.MouseEvent) => {
+    const handleDelete = async (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
         if (confirm('¿Estás seguro de desactivar este elemento?')) {
             if (view === 'locations') {
-                LocationService.deleteLogic(id);
+                await LocationService.deleteLogic(id);
             } else {
-                OperationalStatusService.deleteLogic(id);
+                await OperationalStatusService.deleteLogic(id);
             }
-            loadData();
+            await loadData();
         }
     };
 

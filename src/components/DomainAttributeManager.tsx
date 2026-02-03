@@ -33,11 +33,17 @@ const DomainAttributeManager: React.FC = () => {
         loadData();
     }, []);
 
-    const loadData = () => {
-        const d = DomainService.getDomains();
-        const a = AttributeService.getAll();
-        setDomains(d);
-        setAttributes(a);
+    const loadData = async () => {
+        try {
+            const [d, a] = await Promise.all([
+                DomainService.getDomains(),
+                AttributeService.getAll()
+            ]);
+            setDomains(d);
+            setAttributes(a);
+        } catch (error) {
+            console.error("Error loading domains/attributes:", error);
+        }
     };
 
     useEffect(() => {
@@ -52,11 +58,15 @@ const DomainAttributeManager: React.FC = () => {
     }, [selectedAttrId, attributes]);
 
     useEffect(() => {
-        if (selectedDomainId) {
-            setSelectedDomainValues(DomainService.getValuesByDomain(selectedDomainId));
-        } else {
-            setSelectedDomainValues([]);
-        }
+        const fetchValues = async () => {
+            if (selectedDomainId) {
+                const vals = await DomainService.getValuesByDomain(selectedDomainId);
+                setSelectedDomainValues(vals);
+            } else {
+                setSelectedDomainValues([]);
+            }
+        };
+        fetchValues();
     }, [selectedDomainId]);
 
     const handleOpenModal = (type: 'attr_edit' | 'attr_new' | 'val_new' | 'val_edit' | 'dom_new', data?: any) => {
@@ -101,17 +111,17 @@ const DomainAttributeManager: React.FC = () => {
         setIsModalOpen(true);
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         try {
             if (modalType === 'attr_edit' && editingAttribute) {
-                AttributeService.update(editingAttribute.id, {
+                await AttributeService.update(editingAttribute.id, {
                     name: formData.name,
                     description: formData.description,
                     dataType: formData.dataType,
                     domainId: formData.dataType === 'LIST' ? formData.domainId : undefined
                 });
             } else if (modalType === 'attr_new') {
-                AttributeService.create({
+                await AttributeService.create({
                     name: formData.name,
                     description: formData.description,
                     dataType: formData.dataType,
@@ -119,7 +129,7 @@ const DomainAttributeManager: React.FC = () => {
                     createdBy: 'user'
                 });
             } else if (modalType === 'val_new' && selectedDomainId) {
-                DomainService.addValue({
+                await DomainService.addValue({
                     domainId: selectedDomainId,
                     value: formData.newValue,
                     sortOrder: Number(formData.newSortOrder),
@@ -128,13 +138,13 @@ const DomainAttributeManager: React.FC = () => {
                     createdBy: 'user'
                 });
             } else if (modalType === 'val_edit' && editingValue) {
-                DomainService.updateValue(editingValue.id, {
+                await DomainService.updateValue(editingValue.id, {
                     value: formData.newValue,
                     sortOrder: Number(formData.newSortOrder),
                     justification: formData.newJustification
                 });
             } else if (modalType === 'dom_new') {
-                DomainService.createDomain({
+                await DomainService.createDomain({
                     name: formData.name,
                     code: formData.name.toUpperCase().replace(/\s+/g, '_'),
                     type: formData.description as any, // 'CLOSED' o 'SEMI_CLOSED'
@@ -142,9 +152,10 @@ const DomainAttributeManager: React.FC = () => {
                 });
             }
 
-            loadData();
+            await loadData();
             if (selectedDomainId) {
-                setSelectedDomainValues(DomainService.getValuesByDomain(selectedDomainId));
+                const vals = await DomainService.getValuesByDomain(selectedDomainId);
+                setSelectedDomainValues(vals);
             }
             setIsModalOpen(false);
         } catch (error: any) {
@@ -152,25 +163,26 @@ const DomainAttributeManager: React.FC = () => {
         }
     };
 
-    const handleDeleteAttribute = (id: string) => {
+    const handleDeleteAttribute = async (id: string) => {
         const attr = attributes.find(a => a.id === id);
         if (!attr) return;
 
         if (window.confirm(`¿Seguro que desea eliminar el atributo "${attr.name}" del catálogo maestro?`)) {
             if (window.confirm(`ATENCIÓN: Esta acción es IRREVERSIBLE y podría afectar a las categorías que usan este atributo.\n\n¿ESTÁ ABSOLUTAMENTE SEGURO de querer borrarlo?`)) {
-                AttributeService.deleteLogic(id);
-                loadData();
+                await AttributeService.deleteLogic(id);
+                await loadData();
                 if (selectedAttrId === id) setSelectedAttrId(null);
             }
         }
     };
 
-    const handleDeleteValue = (id: string, value: string) => {
+    const handleDeleteValue = async (id: string, value: string) => {
         if (window.confirm(`¿Seguro que desea eliminar el valor "${value}" de este dominio?`)) {
             if (window.confirm(`Confirme nuevamente: ¿Está seguro de borrar "${value}"?`)) {
-                DomainService.deleteValue(id);
+                await DomainService.deleteValue(id);
                 if (selectedDomainId) {
-                    setSelectedDomainValues(DomainService.getValuesByDomain(selectedDomainId));
+                    const vals = await DomainService.getValuesByDomain(selectedDomainId);
+                    setSelectedDomainValues(vals);
                 }
             }
         }

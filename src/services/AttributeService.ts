@@ -50,5 +50,29 @@ export const AttributeService = {
         const newAttr = { ...attr, isActive: true, createdAt: serverTimestamp() };
         await setDoc(doc(db, COLLECTION_NAME, id), newAttr);
         return { ...newAttr, id, createdAt: new Date() } as Attribute;
+    },
+
+    update: async (id: string, updates: Partial<Attribute>): Promise<Attribute | undefined> => {
+        const docRef = doc(db, COLLECTION_NAME, id);
+        await updateDoc(docRef, updates);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            return {
+                ...docSnap.data(),
+                id: docSnap.id,
+                createdAt: docSnap.data().createdAt?.toDate()
+            } as Attribute;
+        }
+        return undefined;
+    },
+
+    deleteLogic: async (id: string): Promise<boolean> => {
+        const docRef = doc(db, COLLECTION_NAME, id);
+        try {
+            await updateDoc(docRef, { isActive: false });
+            return true;
+        } catch (e) {
+            return false;
+        }
     }
 };

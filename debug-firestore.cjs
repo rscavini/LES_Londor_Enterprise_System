@@ -22,11 +22,17 @@ async function checkData() {
 
         const catSnap = await getDocs(collection(db, "categories"));
         console.log(`Categories found: ${catSnap.size}`);
-        catSnap.forEach(doc => console.log(` - [${doc.id}] ${doc.data().name}`));
+        catSnap.forEach(doc => {
+            const data = doc.data();
+            console.log(` - [${doc.id}] name: "${data.name}", isActive: ${data.isActive}`);
+        });
 
         const subSnap = await getDocs(collection(db, "subcategories"));
         console.log(`Subcategories found: ${subSnap.size}`);
-        subSnap.forEach(doc => console.log(` - [${doc.id}] ${doc.data().name} (Cat: ${doc.data().categoryId})`));
+        subSnap.forEach(doc => {
+            const data = doc.data();
+            console.log(` - [${doc.id}] name: "${data.name}", categoryId: "${data.categoryId}", isActive: ${data.isActive}`);
+        });
 
     } catch (error) {
         console.error("Error checking data:", error);

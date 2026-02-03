@@ -71,33 +71,47 @@ const ClassificationControlTower: React.FC = () => {
     }, []);
 
     useEffect(() => {
-        if (selectedSubId) {
-            setMappedAttributes(ClassificationService.getAttributesBySubcategory(selectedSubId, selectedCatId || undefined));
-        } else if (selectedCatId) {
-            setMappedAttributes(ClassificationService.getAttributesByCategory(selectedCatId));
-        } else {
-            setMappedAttributes([]);
-        }
+        const fetchMapped = async () => {
+            if (selectedSubId) {
+                const attrs = await ClassificationService.getAttributesBySubcategory(selectedSubId, selectedCatId || undefined);
+                setMappedAttributes(attrs);
+            } else if (selectedCatId) {
+                const attrs = await ClassificationService.getAttributesByCategory(selectedCatId);
+                setMappedAttributes(attrs);
+            } else {
+                setMappedAttributes([]);
+            }
+        };
+        fetchMapped();
     }, [selectedSubId, selectedCatId]);
 
-    const loadBaseData = () => {
-        const cats = CategoryService.getAll();
-        setCategories(cats);
-        setSubcategories(SubcategoryService.getAll());
-        setAllAttributes(AttributeService.getAll());
+    const loadBaseData = async () => {
+        try {
+            const [cats, subs, attrs] = await Promise.all([
+                CategoryService.getAll(),
+                SubcategoryService.getAll(),
+                AttributeService.getAll()
+            ]);
 
-        // Seleccion inicial si hay datos
-        if (cats.length > 0 && !selectedCatId) {
-            setSelectedCatId(cats[0].id);
+            setCategories(cats);
+            setSubcategories(subs);
+            setAllAttributes(attrs);
+
+            // Seleccion inicial si hay datos
+            if (cats.length > 0 && !selectedCatId) {
+                setSelectedCatId(cats[0].id);
+            }
+        } catch (error) {
+            console.error("Error loading base data:", error);
         }
     };
 
-    const handleToggleMandatory = (attrId: string) => {
+    const handleToggleMandatory = async (attrId: string) => {
         const targetId = selectedSubId || selectedCatId;
         const type = selectedSubId ? 'subcategory' : 'category';
         if (targetId) {
-            ClassificationService.toggleMandatory(targetId, attrId, type);
-            refreshMappedAttributes();
+            await ClassificationService.toggleMandatory(targetId, attrId, type);
+            await refreshMappedAttributes();
         }
     };
 
@@ -196,10 +210,11 @@ const ClassificationControlTower: React.FC = () => {
     };
 
 
-    const refreshLogs = () => {
+    const refreshLogs = async () => {
         const targetId = selectedSubId || selectedCatId;
         if (targetId) {
-            setLogs(ClassificationService.getLogs(targetId));
+            const auditLogs = await ClassificationService.getLogs(targetId);
+            setLogs(auditLogs);
         }
     };
 
@@ -209,52 +224,54 @@ const ClassificationControlTower: React.FC = () => {
         }
     }, [activeTab, selectedSubId, selectedCatId]);
 
-    const refreshMappedAttributes = () => {
+    const refreshMappedAttributes = async () => {
         if (selectedSubId) {
-            setMappedAttributes(ClassificationService.getAttributesBySubcategory(selectedSubId, selectedCatId || undefined));
+            const attrs = await ClassificationService.getAttributesBySubcategory(selectedSubId, selectedCatId || undefined);
+            setMappedAttributes(attrs);
         } else if (selectedCatId) {
-            setMappedAttributes(ClassificationService.getAttributesByCategory(selectedCatId));
+            const attrs = await ClassificationService.getAttributesByCategory(selectedCatId);
+            setMappedAttributes(attrs);
         }
-        if (activeTab === 'logs') refreshLogs();
+        if (activeTab === 'logs') await refreshLogs();
     };
 
     const getAttributeDetails = (id: string) => allAttributes.find(a => a.id === id);
 
-    const handleCreateCategory = (e: React.FormEvent) => {
+    const handleCreateCategory = async (e: React.FormEvent) => {
         e.preventDefault();
-        CategoryService.create({ ...newCatData, createdBy: 'admin' });
+        await CategoryService.create({ ...newCatData, createdBy: 'admin' });
         setNewCatData({ name: '', description: '' });
         setIsAddCatModalOpen(false);
-        loadBaseData();
+        await loadBaseData();
     };
 
-    const handleCreateSubcategory = (e: React.FormEvent) => {
+    const handleCreateSubcategory = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedCatId) return;
-        SubcategoryService.create({
+        await SubcategoryService.create({
             ...newSubData,
             categoryId: selectedCatId,
             createdBy: 'admin'
         });
         setNewSubData({ name: '', description: '' });
         setIsAddSubModalOpen(false);
-        loadBaseData();
+        await loadBaseData();
     };
 
-    const handleDeleteCategory = (id: string, name: string) => {
+    const handleDeleteCategory = async (id: string, name: string) => {
         if (window.confirm(`¿Seguro que desea eliminar la categoría "${name}"? Se desactivará del sistema.`)) {
-            CategoryService.deleteLogic(id);
+            await CategoryService.deleteLogic(id);
             setSelectedCatId(null);
             setSelectedSubId(null);
-            loadBaseData();
+            await loadBaseData();
         }
     };
 
-    const handleDeleteSubcategory = (id: string, name: string) => {
+    const handleDeleteSubcategory = async (id: string, name: string) => {
         if (window.confirm(`¿Seguro que desea eliminar la subcategoría "${name}"?`)) {
-            SubcategoryService.deleteLogic(id);
+            await SubcategoryService.deleteLogic(id);
             setSelectedSubId(null);
-            loadBaseData();
+            await loadBaseData();
         }
     };
 

@@ -13,21 +13,26 @@ const CategoryManager: React.FC = () => {
         loadCategories();
     }, []);
 
-    const loadCategories = () => {
-        setCategories(CategoryService.getAll());
+    const loadCategories = async () => {
+        try {
+            const cats = await CategoryService.getAll();
+            setCategories(cats);
+        } catch (error) {
+            console.error("Error loading categories:", error);
+        }
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (editingId) {
-            CategoryService.update(editingId, formData);
+            await CategoryService.update(editingId, formData);
         } else {
-            CategoryService.create({ ...formData, createdBy: 'admin' });
+            await CategoryService.create({ ...formData, createdBy: 'admin' });
         }
         setFormData({ name: '', description: '' });
         setIsAdding(false);
         setEditingId(null);
-        loadCategories();
+        await loadCategories();
     };
 
     const handleEdit = (category: Category) => {
@@ -36,10 +41,10 @@ const CategoryManager: React.FC = () => {
         setIsAdding(true);
     };
 
-    const handleDelete = (id: string) => {
+    const handleDelete = async (id: string) => {
         if (window.confirm('¿Estás seguro de desactivar esta categoría?')) {
-            CategoryService.deleteLogic(id);
-            loadCategories();
+            await CategoryService.deleteLogic(id);
+            await loadCategories();
         }
     };
 

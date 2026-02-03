@@ -21,20 +21,28 @@ const SubcategoryManager: React.FC = () => {
         loadData();
     }, []);
 
-    const loadData = () => {
-        setCategories(CategoryService.getAll());
-        setSubcategories(SubcategoryService.getAll());
+    const loadData = async () => {
+        try {
+            const [cats, subs] = await Promise.all([
+                CategoryService.getAll(),
+                SubcategoryService.getAll()
+            ]);
+            setCategories(cats);
+            setSubcategories(subs);
+        } catch (error) {
+            console.error("Error loading data:", error);
+        }
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (editingId) {
-            SubcategoryService.update(editingId, formData);
+            await SubcategoryService.update(editingId, formData);
         } else {
-            SubcategoryService.create({ ...formData, createdBy: 'admin' });
+            await SubcategoryService.create({ ...formData, createdBy: 'admin' });
         }
         resetForm();
-        loadData();
+        await loadData();
     };
 
     const resetForm = () => {
@@ -53,10 +61,10 @@ const SubcategoryManager: React.FC = () => {
         setIsAdding(true);
     };
 
-    const handleDelete = (id: string) => {
+    const handleDelete = async (id: string) => {
         if (window.confirm('¿Estás seguro de desactivar esta subcategoría?')) {
-            SubcategoryService.deleteLogic(id);
-            loadData();
+            await SubcategoryService.deleteLogic(id);
+            await loadData();
         }
     };
 

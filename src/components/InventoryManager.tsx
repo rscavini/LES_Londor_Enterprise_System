@@ -93,52 +93,76 @@ const InventoryManager: React.FC = () => {
     // Cargar campos dinámicos cuando cambia la categoría o subcategoría
     useEffect(() => {
         const fetchFields = async () => {
-            let fields: ClassificationMapping[] = [];
-            if (formData.subcategoryId) {
-                fields = await ClassificationService.getAttributesBySubcategory(formData.subcategoryId, formData.categoryId);
-            } else if (formData.categoryId) {
-                fields = await ClassificationService.getAttributesByCategory(formData.categoryId);
-            }
-
-            setDynamicFields(fields);
-
-            // Cargar valores de dominio para campos de tipo LIST
-            const newDomainMap: Record<string, any[]> = {};
-            for (const field of fields) {
-                const attr = allAttributes.find(a => a.id === field.attributeId);
-                if (attr?.dataType === 'LIST' && attr.domainId) {
-                    newDomainMap[field.attributeId] = await DomainService.getValuesByDomain(attr.domainId);
+            try {
+                let fields: ClassificationMapping[] = [];
+                if (formData.subcategoryId) {
+                    fields = await ClassificationService.getAttributesBySubcategory(formData.subcategoryId, formData.categoryId);
+                } else if (formData.categoryId) {
+                    fields = await ClassificationService.getAttributesByCategory(formData.categoryId);
                 }
-            }
-            setDomainValuesMap(newDomainMap);
 
-            if (fields.length > 0) {
-                const newAttrs = { ...formData.attributes };
-                fields.forEach(f => {
-                    if (newAttrs[f.attributeId] === undefined) {
-                        newAttrs[f.attributeId] = '';
+                setDynamicFields(fields);
+
+                // Cargar valores de dominio para campos de tipo LIST
+                const newDomainMap: Record<string, any[]> = {};
+                for (const field of fields) {
+                    const attr = allAttributes.find(a => a.id === field.attributeId);
+                    if (attr?.dataType === 'LIST' && attr.domainId) {
+                        newDomainMap[field.attributeId] = await DomainService.getValuesByDomain(attr.domainId);
                     }
-                });
-                setFormData(prev => ({ ...prev, attributes: newAttrs }));
+                }
+                setDomainValuesMap(newDomainMap);
+
+                if (fields.length > 0) {
+                    setFormData(prev => {
+                        const newAttrs = { ...prev.attributes };
+                        fields.forEach(f => {
+                            if (newAttrs[f.attributeId] === undefined) {
+                                newAttrs[f.attributeId] = '';
+                            }
+                        });
+                        return { ...prev, attributes: newAttrs };
+                    });
+                }
+            } catch (err) {
+                console.error("Error en fetchFields:", err);
             }
         };
         fetchFields();
     }, [formData.subcategoryId, formData.categoryId, allAttributes]);
 
     const loadData = async () => {
+        console.log("Iniciando carga de datos...");
         try {
-            setItems(await InventoryService.getAll());
-            setCategories(await CategoryService.getAll());
-            setSubcategories(await SubcategoryService.getAll());
-            setLocations(await LocationService.getAll());
-            setStatuses(await OperationalStatusService.getAll());
-            setAllAttributes(await AttributeService.getAll());
+            const [
+                itemsData,
+                catsData,
+                subsData,
+                locsData,
+                statsData,
+                attrsData
+            ] = await Promise.all([
+                InventoryService.getAll(),
+                CategoryService.getAll(),
+                SubcategoryService.getAll(),
+                LocationService.getAll(),
+                OperationalStatusService.getAll(),
+                AttributeService.getAll()
+            ]);
+
+            console.log("Datos cargados:", { items: itemsData.length, cats: catsData.length, subs: subsData.length });
+            setItems(itemsData);
+            setCategories(catsData);
+            setSubcategories(subsData);
+            setLocations(locsData);
+            setStatuses(statsData);
+            setAllAttributes(attrsData);
         } catch (error: any) {
-            console.error("Error loading initial data:", error);
+            console.error("Error crítico en loadData:", error);
             if (error.message?.includes("permissions")) {
                 alert("Error de permisos en Firestore. Asegúrate de que las reglas de seguridad permitan el acceso de lectura/escritura.");
             } else {
-                alert("Error al cargar los datos del inventario.");
+                alert("Error al cargar los datos iniciales. Revisa la consola para más detalles.");
             }
         }
     };
@@ -205,15 +229,26 @@ const InventoryManager: React.FC = () => {
             // Pasar también el tipo MIME real del archivo
             const result = await AIService.analyzeImage(base64, file.type);
 
+            // Intentar emparejar por ID o por Nombre
+            const finalCategoryId = categories.find(c =>
+                c.id === result.categoryId ||
+                c.name.toLowerCase() === (result.categoryId || "").toLowerCase()
+            )?.id || result.categoryId || '';
+
+            const finalSubcategoryId = subcategories.find(s =>
+                s.id === result.subcategoryId ||
+                s.name.toLowerCase() === (result.subcategoryId || "").toLowerCase()
+            )?.id || result.subcategoryId || '';
+
             setFormData(prev => ({
                 ...prev,
                 name: result.name || prev.name,
                 description: result.description || prev.description,
-                categoryId: result.categoryId || prev.categoryId,
-                subcategoryId: result.subcategoryId || prev.subcategoryId,
+                categoryId: finalCategoryId,
+                subcategoryId: finalSubcategoryId,
                 attributes: {
                     ...prev.attributes,
-                    ...result.attributes
+                    ...(result.attributes || {})
                 }
             }));
         } catch (error: any) {
@@ -690,6 +725,7 @@ const InventoryManager: React.FC = () => {
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                             <select
                                                 required
+                                                className="form-control"
                                                 value={formData.categoryId}
                                                 onChange={e => setFormData({ ...formData, categoryId: e.target.value, subcategoryId: '' })}
                                             >
@@ -698,6 +734,7 @@ const InventoryManager: React.FC = () => {
                                             </select>
                                             <select
                                                 required
+                                                className="form-control"
                                                 value={formData.subcategoryId}
                                                 onChange={e => setFormData({ ...formData, subcategoryId: e.target.value })}
                                                 disabled={!formData.categoryId}
@@ -726,6 +763,7 @@ const InventoryManager: React.FC = () => {
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                             <select
                                                 required
+                                                className="form-control"
                                                 value={formData.locationId}
                                                 onChange={e => setFormData({ ...formData, locationId: e.target.value })}
                                             >
@@ -734,6 +772,7 @@ const InventoryManager: React.FC = () => {
                                             </select>
                                             <select
                                                 required
+                                                className="form-control"
                                                 value={formData.statusId}
                                                 onChange={e => setFormData({ ...formData, statusId: e.target.value })}
                                             >
