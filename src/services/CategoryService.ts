@@ -17,7 +17,7 @@ const initialCategories: Category[] = [
     { id: 'cat_tobilleras', name: 'Tobilleras', description: 'Piezas destinadas al tobillo.', isActive: true, createdAt: new Date(), createdBy: 'system' },
     { id: 'cat_gemelos', name: 'Gemelos', description: 'Piezas destinadas a camisas.', isActive: true, createdAt: new Date(), createdBy: 'system' },
     { id: 'cat_broches', name: 'Broches', description: 'Piezas decorativas o funcionales para prendas.', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'cat_relojes', name: 'Relojes', description: 'Instrumentos de medida del tiempo.', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'cat_relojes', name: 'Relojes', description: '(Solo si se incluye en inventario troncal) Instrumentos de medida del tiempo.', isActive: true, createdAt: new Date(), createdBy: 'system' },
     { id: 'cat_conjuntos', name: 'Conjuntos / Sets', description: 'Entidad lógica de agrupación de piezas.', isActive: true, createdAt: new Date(), createdBy: 'system' },
     { id: 'cat_otros', name: 'Otros / Especiales', description: 'Uso controlado y excepcional.', isActive: true, createdAt: new Date(), createdBy: 'system' }
 ];
