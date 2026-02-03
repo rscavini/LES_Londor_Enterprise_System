@@ -15,7 +15,8 @@ import {
     Plus,
     Activity,
     Settings,
-    ArrowRight
+    ArrowRight,
+    Trash2
 } from 'lucide-react';
 import { Location, WorkshopSpecialty } from '../models/schema';
 
@@ -24,6 +25,16 @@ interface Props {
     onBack: () => void;
     onSave: (updates: Partial<Location>) => void;
 }
+
+const daysOfWeek = [
+    { key: 'monday', label: 'Lunes' },
+    { key: 'tuesday', label: 'Martes' },
+    { key: 'wednesday', label: 'Miércoles' },
+    { key: 'thursday', label: 'Jueves' },
+    { key: 'friday', label: 'Viernes' },
+    { key: 'saturday', label: 'Sábado' },
+    { key: 'sunday', label: 'Domingo' },
+] as const;
 
 const LocationDetailView: React.FC<Props> = ({ location, onBack, onSave }) => {
     const [activeTab, setActiveTab] = useState<'orders' | 'history' | 'docs'>('orders');
@@ -145,25 +156,36 @@ const LocationDetailView: React.FC<Props> = ({ location, onBack, onSave }) => {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div>
-                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)' }}>Teléfono</label>
+                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)' }}>Teléfono Fijo</label>
                     <input
                         className="form-control"
                         disabled={!isEditing}
-                        value={editData.metadata?.phone || ''}
-                        onChange={e => setEditData({ ...editData, metadata: { ...editData.metadata, phone: e.target.value } })}
+                        value={editData.metadata?.phoneFixed || ''}
+                        onChange={e => setEditData({ ...editData, metadata: { ...editData.metadata, phoneFixed: e.target.value } })}
                         style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #eee' }}
                     />
                 </div>
                 <div>
-                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)' }}>Email</label>
+                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)' }}>Teléfono Móvil</label>
                     <input
                         className="form-control"
                         disabled={!isEditing}
-                        value={editData.metadata?.email || ''}
-                        onChange={e => setEditData({ ...editData, metadata: { ...editData.metadata, email: e.target.value } })}
+                        value={editData.metadata?.phoneMobile || ''}
+                        onChange={e => setEditData({ ...editData, metadata: { ...editData.metadata, phoneMobile: e.target.value } })}
                         style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #eee' }}
                     />
                 </div>
+            </div>
+
+            <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)' }}>Email</label>
+                <input
+                    className="form-control"
+                    disabled={!isEditing}
+                    value={editData.metadata?.email || ''}
+                    onChange={e => setEditData({ ...editData, metadata: { ...editData.metadata, email: e.target.value } })}
+                    style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #eee' }}
+                />
             </div>
 
             <div>
@@ -344,67 +366,92 @@ const LocationDetailView: React.FC<Props> = ({ location, onBack, onSave }) => {
         const currentStock = stockByShowcase[currentShowcase?.id] || stockByShowcase['default'];
 
         return (
-            <div style={{ display: 'grid', gridTemplateColumns: '300px 300px 1fr', gap: '24px', alignItems: 'start' }}>
-                {/* 1. SELECCIÓN DE VITRINAS */}
-                <div className="glass-card" style={{ padding: '24px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                        <h4 style={{ margin: 0, textTransform: 'uppercase', fontSize: '11px', letterSpacing: '1px', color: 'var(--text-muted)' }}>Gestión de Vitrinas</h4>
-                        <Plus
-                            size={16}
-                            color="var(--primary)"
-                            style={{ cursor: 'pointer' }}
-                            onClick={() => setIsAddingShowcase(true)}
-                        />
-                    </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '380px 300px 1fr', gap: '24px', alignItems: 'start' }}>
+                {/* 1. INFORMACIÓN GENERAL (CONTACTO + HORARIOS) */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                    {/* DATOS BÁSICOS / CONTACTO */}
+                    <div className="glass-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                        <h4 style={{ margin: 0, textTransform: 'uppercase', fontSize: '11px', letterSpacing: '1px', color: 'var(--text-muted)' }}>Información de la Tienda</h4>
 
-                    {isAddingShowcase && (
-                        <div style={{ marginBottom: '16px', display: 'flex', gap: '8px' }}>
-                            <input
-                                className="form-control"
-                                autoFocus
-                                placeholder="Nombre vitrina"
-                                value={newShowcaseName}
-                                onChange={e => setNewShowcaseName(e.target.value)}
-                                onKeyDown={e => e.key === 'Enter' && handleAddShowcase()}
-                                style={{ flex: 1, fontSize: '12px', padding: '8px' }}
-                            />
-                            <button className="btn btn-primary btn-sm" onClick={handleAddShowcase}>OK</button>
-                        </div>
-                    )}
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        {showcases.map((v, i) => (
-                            <div key={v.id || i}
-                                onClick={() => setSelectedShowcaseIndex(i)}
-                                style={{
-                                    padding: '12px 16px',
-                                    borderRadius: '8px',
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center',
-                                    backgroundColor: i === selectedShowcaseIndex ? 'var(--primary)' : 'transparent',
-                                    color: i === selectedShowcaseIndex ? 'white' : 'var(--text-main)',
-                                    transition: 'all 0.2s',
-                                    border: i === selectedShowcaseIndex ? 'none' : '1px solid transparent'
-                                }}
-                                onMouseEnter={(e) => i !== selectedShowcaseIndex && (e.currentTarget.style.backgroundColor = '#f9f9f9')}
-                                onMouseLeave={(e) => i !== selectedShowcaseIndex && (e.currentTarget.style.backgroundColor = 'transparent')}
-                            >
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                    <Package size={16} opacity={0.7} />
-                                    <span style={{ fontWeight: 600 }}>{v.name}</span>
-                                </div>
-                                <ArrowRight size={16} opacity={0.5} />
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            <div>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)' }}>
+                                    <User size={12} /> Persona de Contacto
+                                </label>
+                                <input
+                                    className="form-control"
+                                    disabled={!isEditing}
+                                    placeholder="Nombre del responsable"
+                                    value={editData.metadata?.contactPerson || ''}
+                                    onChange={e => setEditData({ ...editData, metadata: { ...editData.metadata, contactPerson: e.target.value } })}
+                                    style={{ width: '100%', fontSize: '13px' }}
+                                />
                             </div>
-                        ))}
-                    </div>
-                </div>
 
-                {/* 2. GESTIÓN OPERATIVA Y DETALLE */}
-                <div className="glass-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                    <div>
-                        <h4 style={{ margin: 0, textTransform: 'uppercase', fontSize: '11px', letterSpacing: '1px', color: 'var(--text-muted)', marginBottom: '16px' }}>Gestión Operativa</h4>
+                            <div>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)' }}>
+                                    <Mail size={12} /> Correo Electrónico
+                                </label>
+                                <input
+                                    className="form-control"
+                                    disabled={!isEditing}
+                                    placeholder="email@ejemplo.com"
+                                    value={editData.metadata?.email || ''}
+                                    onChange={e => setEditData({ ...editData, metadata: { ...editData.metadata, email: e.target.value } })}
+                                    style={{ width: '100%', fontSize: '13px' }}
+                                />
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                <div>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)' }}>
+                                        <Phone size={12} /> Tel. Fijo
+                                    </label>
+                                    <input
+                                        className="form-control"
+                                        disabled={!isEditing}
+                                        placeholder="912..."
+                                        value={editData.metadata?.phoneFixed || ''}
+                                        onChange={e => setEditData({ ...editData, metadata: { ...editData.metadata, phoneFixed: e.target.value } })}
+                                        style={{ width: '100%', fontSize: '13px' }}
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)' }}>
+                                        <Phone size={12} /> Tel. Móvil
+                                    </label>
+                                    <input
+                                        className="form-control"
+                                        disabled={!isEditing}
+                                        placeholder="644..."
+                                        value={editData.metadata?.phoneMobile || ''}
+                                        onChange={e => setEditData({ ...editData, metadata: { ...editData.metadata, phoneMobile: e.target.value } })}
+                                        style={{ width: '100%', fontSize: '13px' }}
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)' }}>
+                                    <MapPin size={12} /> Dirección Completa
+                                </label>
+                                <textarea
+                                    className="form-control"
+                                    disabled={!isEditing}
+                                    rows={2}
+                                    placeholder="Calle, Número, Ciudad, CP..."
+                                    value={editData.metadata?.address || ''}
+                                    onChange={e => setEditData({ ...editData, metadata: { ...editData.metadata, address: e.target.value } })}
+                                    style={{ width: '100%', fontSize: '13px', resize: 'none' }}
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* GESTIÓN OPERATIVA / HORARIOS */}
+                    <div className="glass-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                        <h4 style={{ margin: 0, textTransform: 'uppercase', fontSize: '11px', letterSpacing: '1px', color: 'var(--text-muted)' }}>Gestión Operativa</h4>
+
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                             <div>
                                 <label style={{ display: 'block', marginBottom: '4px', fontSize: '11px', fontWeight: 600 }}>Gerente de Tienda</label>
@@ -416,201 +463,358 @@ const LocationDetailView: React.FC<Props> = ({ location, onBack, onSave }) => {
                                     style={{ width: '100%', fontSize: '13px' }}
                                 />
                             </div>
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '8px', fontSize: '11px', fontWeight: 600 }}>Horario (Lunes a Sábado)</label>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                                    <div style={{ backgroundColor: '#fcfcfc', padding: '12px', borderRadius: '8px', border: '1px solid #f0f0f0' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', color: 'var(--text-muted)' }}>
-                                            <Clock size={12} />
-                                            <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' }}>Mañana</span>
-                                        </div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <input
-                                                type="time"
-                                                className="form-control"
-                                                disabled={!isEditing}
-                                                value={editData.metadata?.businessHours?.morning?.open || '10:00'}
-                                                onChange={e => {
-                                                    const bh = editData.metadata?.businessHours || {};
-                                                    const morning = bh.morning || { open: '', close: '' };
-                                                    setEditData({
-                                                        ...editData,
-                                                        metadata: {
-                                                            ...editData.metadata,
-                                                            businessHours: { ...bh, morning: { ...morning, open: e.target.value } }
-                                                        }
-                                                    });
-                                                }}
-                                                style={{ border: 'none', background: 'transparent', padding: 0, fontSize: '13px', width: 'auto' }}
-                                            />
-                                            <span style={{ opacity: 0.3 }}>-</span>
-                                            <input
-                                                type="time"
-                                                className="form-control"
-                                                disabled={!isEditing}
-                                                value={editData.metadata?.businessHours?.morning?.close || '14:00'}
-                                                onChange={e => {
-                                                    const bh = editData.metadata?.businessHours || {};
-                                                    const morning = bh.morning || { open: '', close: '' };
-                                                    setEditData({
-                                                        ...editData,
-                                                        metadata: {
-                                                            ...editData.metadata,
-                                                            businessHours: { ...bh, morning: { ...morning, close: e.target.value } }
-                                                        }
-                                                    });
-                                                }}
-                                                style={{ border: 'none', background: 'transparent', padding: 0, fontSize: '13px', width: 'auto' }}
-                                            />
-                                        </div>
-                                    </div>
-                                    <div style={{ backgroundColor: '#fcfcfc', padding: '12px', borderRadius: '8px', border: '1px solid #f0f0f0' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', color: 'var(--text-muted)' }}>
-                                            <Clock size={12} />
-                                            <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' }}>Tarde</span>
-                                        </div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <input
-                                                type="time"
-                                                className="form-control"
-                                                disabled={!isEditing}
-                                                value={editData.metadata?.businessHours?.afternoon?.open || '17:00'}
-                                                onChange={e => {
-                                                    const bh = editData.metadata?.businessHours || {};
-                                                    const afternoon = bh.afternoon || { open: '', close: '' };
-                                                    setEditData({
-                                                        ...editData,
-                                                        metadata: {
-                                                            ...editData.metadata,
-                                                            businessHours: { ...bh, afternoon: { ...afternoon, open: e.target.value } }
-                                                        }
-                                                    });
-                                                }}
-                                                style={{ border: 'none', background: 'transparent', padding: 0, fontSize: '13px', width: 'auto' }}
-                                            />
-                                            <span style={{ opacity: 0.3 }}>-</span>
-                                            <input
-                                                type="time"
-                                                className="form-control"
-                                                disabled={!isEditing}
-                                                value={editData.metadata?.businessHours?.afternoon?.close || '20:30'}
-                                                onChange={e => {
-                                                    const bh = editData.metadata?.businessHours || {};
-                                                    const afternoon = bh.afternoon || { open: '', close: '' };
-                                                    setEditData({
-                                                        ...editData,
-                                                        metadata: {
-                                                            ...editData.metadata,
-                                                            businessHours: { ...bh, afternoon: { ...afternoon, close: e.target.value } }
-                                                        }
-                                                    });
-                                                }}
-                                                style={{ border: 'none', background: 'transparent', padding: 0, fontSize: '13px', width: 'auto' }}
-                                            />
-                                        </div>
-                                    </div>
+
+                            <div style={{ borderTop: '1px solid #f1f1f1', paddingTop: '16px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)' }}>HORARIOS POR DÍA</label>
+                                    {!isEditing && <span style={{ fontSize: '10px', color: 'var(--primary)' }}>Solo lectura</span>}
                                 </div>
-                            </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                                <div>
-                                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '11px', fontWeight: 600 }}>Vitrinas</label>
-                                    <input
-                                        type="number"
-                                        className="form-control"
-                                        value={editData.metadata?.showcasesCount ?? showcases.length}
-                                        style={{ width: '100%', fontSize: '13px' }}
-                                        readOnly
-                                    />
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '11px', fontWeight: 600 }}>Seguridad</label>
-                                    <select
-                                        className="form-control"
-                                        disabled={!isEditing}
-                                        value={editData.metadata?.securityLevel || 'MEDIUM'}
-                                        onChange={e => setEditData({ ...editData, metadata: { ...editData.metadata, securityLevel: e.target.value as any } })}
-                                        style={{ width: '100%', fontSize: '13px', padding: '8px' }}
-                                    >
-                                        <option value="LOW">Básica</option>
-                                        <option value="MEDIUM">Estándar</option>
-                                        <option value="HIGH">Alta</option>
-                                        <option value="ELITE">Máxima</option>
-                                    </select>
+
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    {daysOfWeek.map(day => {
+                                        const schedule = editData.metadata?.businessHours?.[day.key] || { morning: { open: '10:00', close: '14:00' }, afternoon: { open: '17:00', close: '20:30' } };
+                                        const isClosed = schedule.isClosed;
+
+                                        return (
+                                            <div key={day.key} style={{
+                                                backgroundColor: isClosed ? 'rgba(231, 76, 60, 0.05)' : '#fcfcfc',
+                                                padding: '12px',
+                                                borderRadius: '8px',
+                                                border: '1px solid #f0f0f0'
+                                            }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                                    <span style={{ fontSize: '11px', fontWeight: 700 }}>{day.label}</span>
+                                                    {isEditing && (
+                                                        <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', cursor: 'pointer' }}>
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={isClosed || false}
+                                                                onChange={e => {
+                                                                    const bh = editData.metadata?.businessHours || {};
+                                                                    setEditData({
+                                                                        ...editData,
+                                                                        metadata: {
+                                                                            ...editData.metadata,
+                                                                            businessHours: {
+                                                                                ...bh,
+                                                                                [day.key]: { ...schedule, isClosed: e.target.checked }
+                                                                            }
+                                                                        }
+                                                                    });
+                                                                }}
+                                                            />
+                                                            Cerrado
+                                                        </label>
+                                                    )}
+                                                    {!isEditing && isClosed && <span style={{ fontSize: '10px', color: 'var(--error)', fontWeight: 800 }}>CERRADO</span>}
+                                                </div>
+
+                                                {!isClosed && (
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                        {/* Mañana */}
+                                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                                <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>MAÑANA:</span>
+                                                                {isEditing && (
+                                                                    <label style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '9px', opacity: 0.8, cursor: 'pointer' }}>
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            checked={schedule.morning?.isClosed || false}
+                                                                            onChange={e => {
+                                                                                const bh = editData.metadata?.businessHours || {};
+                                                                                const d = bh[day.key] || schedule;
+                                                                                const morning = d.morning || { open: '10:00', close: '14:00' };
+                                                                                setEditData({
+                                                                                    ...editData,
+                                                                                    metadata: {
+                                                                                        ...editData.metadata,
+                                                                                        businessHours: { ...bh, [day.key]: { ...d, morning: { ...morning, isClosed: e.target.checked } } }
+                                                                                    }
+                                                                                });
+                                                                            }}
+                                                                        />
+                                                                        Cerrado
+                                                                    </label>
+                                                                )}
+                                                            </div>
+
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                                {(schedule.morning?.isClosed && !isEditing) ? (
+                                                                    <span style={{ fontSize: '10px', color: 'var(--error)', fontWeight: 600 }}>CERRADO</span>
+                                                                ) : (
+                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', opacity: schedule.morning?.isClosed ? 0.3 : 1 }}>
+                                                                        <input
+                                                                            type="time"
+                                                                            disabled={!isEditing || schedule.morning?.isClosed}
+                                                                            value={schedule.morning?.open || ''}
+                                                                            onChange={e => {
+                                                                                const bh = editData.metadata?.businessHours || {};
+                                                                                const d = bh[day.key] || schedule;
+                                                                                const morning = d.morning || { open: '', close: '' };
+                                                                                setEditData({
+                                                                                    ...editData,
+                                                                                    metadata: {
+                                                                                        ...editData.metadata,
+                                                                                        businessHours: { ...bh, [day.key]: { ...d, morning: { ...morning, open: e.target.value } } }
+                                                                                    }
+                                                                                });
+                                                                            }}
+                                                                            style={{ border: 'none', background: 'transparent', padding: 0, fontSize: '11px', width: 'auto' }}
+                                                                        />
+                                                                        <span style={{ fontSize: '10px', opacity: 0.3 }}>-</span>
+                                                                        <input
+                                                                            type="time"
+                                                                            disabled={!isEditing || schedule.morning?.isClosed}
+                                                                            value={schedule.morning?.close || ''}
+                                                                            onChange={e => {
+                                                                                const bh = editData.metadata?.businessHours || {};
+                                                                                const d = bh[day.key] || schedule;
+                                                                                const morning = d.morning || { open: '', close: '' };
+                                                                                setEditData({
+                                                                                    ...editData,
+                                                                                    metadata: {
+                                                                                        ...editData.metadata,
+                                                                                        businessHours: { ...bh, [day.key]: { ...d, morning: { ...morning, close: e.target.value } } }
+                                                                                    }
+                                                                                });
+                                                                            }}
+                                                                            style={{ border: 'none', background: 'transparent', padding: 0, fontSize: '11px', width: 'auto' }}
+                                                                        />
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Tarde */}
+                                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                                <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>TARDE:</span>
+                                                                {isEditing && (
+                                                                    <label style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '9px', opacity: 0.8, cursor: 'pointer' }}>
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            checked={schedule.afternoon?.isClosed || false}
+                                                                            onChange={e => {
+                                                                                const bh = editData.metadata?.businessHours || {};
+                                                                                const d = bh[day.key] || schedule;
+                                                                                const afternoon = d.afternoon || { open: '17:00', close: '20:30' };
+                                                                                setEditData({
+                                                                                    ...editData,
+                                                                                    metadata: {
+                                                                                        ...editData.metadata,
+                                                                                        businessHours: { ...bh, [day.key]: { ...d, afternoon: { ...afternoon, isClosed: e.target.checked } } }
+                                                                                    }
+                                                                                });
+                                                                            }}
+                                                                        />
+                                                                        Cerrado
+                                                                    </label>
+                                                                )}
+                                                            </div>
+
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                                {(schedule.afternoon?.isClosed && !isEditing) ? (
+                                                                    <span style={{ fontSize: '10px', color: 'var(--error)', fontWeight: 600 }}>CERRADO</span>
+                                                                ) : (
+                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', opacity: schedule.afternoon?.isClosed ? 0.3 : 1 }}>
+                                                                        <input
+                                                                            type="time"
+                                                                            disabled={!isEditing || schedule.afternoon?.isClosed}
+                                                                            value={schedule.afternoon?.open || ''}
+                                                                            onChange={e => {
+                                                                                const bh = editData.metadata?.businessHours || {};
+                                                                                const d = bh[day.key] || schedule;
+                                                                                const afternoon = d.afternoon || { open: '', close: '' };
+                                                                                setEditData({
+                                                                                    ...editData,
+                                                                                    metadata: {
+                                                                                        ...editData.metadata,
+                                                                                        businessHours: { ...bh, [day.key]: { ...d, afternoon: { ...afternoon, open: e.target.value } } }
+                                                                                    }
+                                                                                });
+                                                                            }}
+                                                                            style={{ border: 'none', background: 'transparent', padding: 0, fontSize: '11px', width: 'auto' }}
+                                                                        />
+                                                                        <span style={{ fontSize: '10px', opacity: 0.3 }}>-</span>
+                                                                        <input
+                                                                            type="time"
+                                                                            disabled={!isEditing || schedule.afternoon?.isClosed}
+                                                                            value={schedule.afternoon?.close || ''}
+                                                                            onChange={e => {
+                                                                                const bh = editData.metadata?.businessHours || {};
+                                                                                const d = bh[day.key] || schedule;
+                                                                                const afternoon = d.afternoon || { open: '', close: '' };
+                                                                                setEditData({
+                                                                                    ...editData,
+                                                                                    metadata: {
+                                                                                        ...editData.metadata,
+                                                                                        businessHours: { ...bh, [day.key]: { ...d, afternoon: { ...afternoon, close: e.target.value } } }
+                                                                                    }
+                                                                                });
+                                                                            }}
+                                                                            style={{ border: 'none', background: 'transparent', padding: 0, fontSize: '11px', width: 'auto' }}
+                                                                        />
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    <div style={{ borderTop: '1px solid #eee', paddingTop: '24px' }}>
-                        <h4 style={{ margin: 0, textTransform: 'uppercase', fontSize: '11px', letterSpacing: '1px', color: 'var(--text-muted)', marginBottom: '16px' }}>Detalle de Vitrina</h4>
+                {/* 2. SELECTOR DE VITRINAS */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                    <div className="glass-card" style={{ padding: '24px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                            <h4 style={{ margin: 0, textTransform: 'uppercase', fontSize: '11px', letterSpacing: '1px', color: 'var(--text-muted)' }}>Gestión de Vitrinas</h4>
+                            <Plus
+                                size={16}
+                                color="var(--primary)"
+                                style={{ cursor: 'pointer' }}
+                                onClick={() => setIsAddingShowcase(true)}
+                            />
+                        </div>
+
+                        {isAddingShowcase && (
+                            <div style={{ marginBottom: '24px', display: 'flex', gap: '8px' }}>
+                                <input
+                                    className="form-control"
+                                    autoFocus
+                                    placeholder="Nombre vitrina"
+                                    value={newShowcaseName}
+                                    onChange={e => setNewShowcaseName(e.target.value)}
+                                    onKeyDown={e => e.key === 'Enter' && handleAddShowcase()}
+                                    style={{ flex: 1, fontSize: '12px', padding: '8px' }}
+                                />
+                                <button className="btn btn-primary btn-sm" onClick={handleAddShowcase}>OK</button>
+                            </div>
+                        )}
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            {showcases.map((v, i) => (
+                                <div key={v.id || i}
+                                    onClick={() => setSelectedShowcaseIndex(i)}
+                                    style={{
+                                        padding: '12px 16px',
+                                        borderRadius: '8px',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        backgroundColor: i === selectedShowcaseIndex ? 'var(--primary)' : 'transparent',
+                                        color: i === selectedShowcaseIndex ? 'white' : 'var(--text-main)',
+                                        transition: 'all 0.2s',
+                                        border: '1px solid transparent'
+                                    }}
+                                    onMouseEnter={(e) => i !== selectedShowcaseIndex && (e.currentTarget.style.backgroundColor = '#f9f9f9')}
+                                    onMouseLeave={(e) => i !== selectedShowcaseIndex && (e.currentTarget.style.backgroundColor = 'transparent')}
+                                >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                        <Package size={16} opacity={0.7} />
+                                        <span style={{ fontWeight: 600 }}>{v.name}</span>
+                                    </div>
+                                    <ArrowRight size={16} opacity={0.5} />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="glass-card" style={{ padding: '24px' }}>
+                        <h4 style={{ margin: 0, textTransform: 'uppercase', fontSize: '11px', letterSpacing: '1px', color: 'var(--text-muted)', marginBottom: '16px' }}>Seguridad</h4>
+                        <select
+                            className="form-control"
+                            disabled={!isEditing}
+                            value={editData.metadata?.securityLevel || 'MEDIUM'}
+                            onChange={e => setEditData({ ...editData, metadata: { ...editData.metadata, securityLevel: e.target.value as any } })}
+                            style={{ width: '100%', fontSize: '13px', padding: '8px' }}
+                        >
+                            <option value="LOW">Básica</option>
+                            <option value="MEDIUM">Estándar</option>
+                            <option value="HIGH">Alta</option>
+                            <option value="ELITE">Máxima</option>
+                        </select>
+                    </div>
+                </div>
+
+                {/* 3. CONTENIDO Y DETALLES DE VITRINA */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                    <div className="glass-card" style={{ padding: 0, overflow: 'hidden' }}>
+                        <div style={{ padding: '20px 24px', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <h4 style={{ margin: 0 }}>Stock en Vitrina</h4>
+                            <span style={{ fontSize: '11px', fontWeight: 800, backgroundColor: '#f4f4f4', padding: '4px 8px', borderRadius: '4px' }}>{currentStock.length} PIEZAS</span>
+                        </div>
+                        <div style={{ padding: '0' }}>
+                            {currentStock.map((item, i) => (
+                                <div key={item.id} style={{
+                                    padding: '16px 24px',
+                                    borderBottom: i === currentStock.length - 1 ? 'none' : '1px solid #f8f8f8',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center'
+                                }}>
+                                    <div>
+                                        <span style={{ fontSize: '10px', fontWeight: 800, color: 'var(--primary)' }}>{item.id}</span>
+                                        <p style={{ margin: '2px 0 0 0', fontSize: '13px', fontWeight: 500 }}>{item.desc}</p>
+                                    </div>
+                                    <Settings size={14} color="#ccc" style={{ cursor: 'pointer' }} />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="glass-card" style={{ padding: '24px' }}>
+                        <h4 style={{ margin: 0, textTransform: 'uppercase', fontSize: '11px', letterSpacing: '1px', color: 'var(--text-muted)', marginBottom: '16px' }}>Especificaciones de {currentShowcase?.name}</h4>
                         <div style={{ backgroundColor: '#f9f9f9', padding: '16px', borderRadius: '12px' }}>
-                            <p style={{ fontSize: '13px', fontWeight: 600, margin: '0 0 8px 0' }}>{currentShowcase?.name}</p>
-                            <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '12px', color: 'var(--text-muted)' }}>
+                            <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '13px', color: 'var(--text-muted)' }}>
                                 {(currentShowcase?.details || []).map((detail, idx) => (
-                                    <li key={idx} style={{ marginBottom: '4px' }}>
+                                    <li key={idx} style={{ marginBottom: '8px' }}>
                                         {isEditing ? (
-                                            <input
-                                                className="form-control"
-                                                value={detail}
-                                                onChange={e => {
-                                                    const newDetails = [...currentShowcase.details];
-                                                    newDetails[idx] = e.target.value;
-                                                    handleUpdateShowcaseDetails(selectedShowcaseIndex, newDetails);
-                                                }}
-                                                style={{ width: '100%', padding: '4px', fontSize: '11px', border: 'none', background: 'transparent' }}
-                                            />
+                                            <div style={{ display: 'flex', gap: '8px' }}>
+                                                <input
+                                                    className="form-control"
+                                                    value={detail}
+                                                    onChange={e => {
+                                                        const newDetails = [...currentShowcase.details];
+                                                        newDetails[idx] = e.target.value;
+                                                        handleUpdateShowcaseDetails(selectedShowcaseIndex, newDetails);
+                                                    }}
+                                                    style={{ flex: 1, padding: '4px 8px', fontSize: '12px' }}
+                                                />
+                                                <button
+                                                    onClick={() => {
+                                                        const newDetails = currentShowcase.details.filter((_, i) => i !== idx);
+                                                        handleUpdateShowcaseDetails(selectedShowcaseIndex, newDetails);
+                                                    }}
+                                                    style={{ background: 'none', border: 'none', color: 'var(--error)', cursor: 'pointer' }}
+                                                >
+                                                    <Trash2 size={12} />
+                                                </button>
+                                            </div>
                                         ) : detail}
                                     </li>
                                 ))}
                                 {isEditing && (
-                                    <li style={{ listStyle: 'none', marginTop: '8px' }}>
+                                    <li style={{ listStyle: 'none', marginTop: '12px' }}>
                                         <button
                                             className="btn-sm"
                                             onClick={() => {
                                                 const newDetails = [...(currentShowcase.details || []), 'Nueva característica'];
                                                 handleUpdateShowcaseDetails(selectedShowcaseIndex, newDetails);
                                             }}
-                                            style={{ fontSize: '10px', color: 'var(--primary)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                                            style={{ fontSize: '11px', color: 'var(--primary)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontWeight: 600 }}
                                         >
                                             + Añadir característica
                                         </button>
                                     </li>
                                 )}
                             </ul>
-                        </div>
-                    </div>
-                </div>
-
-                {/* 3. STOCK EN VITRINA */}
-                <div className="glass-card" style={{ padding: 0, overflow: 'hidden' }}>
-                    <div style={{ padding: '20px 24px', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <h4 style={{ margin: 0 }}>Stock en Vitrina</h4>
-                        <span style={{ fontSize: '11px', fontWeight: 800, backgroundColor: '#f4f4f4', padding: '4px 8px', borderRadius: '4px' }}>{currentStock.length} PIEZAS</span>
-                    </div>
-                    <div style={{ padding: '0' }}>
-                        {currentStock.map((item, i) => (
-                            <div key={item.id} style={{
-                                padding: '16px 24px',
-                                borderBottom: i === currentStock.length - 1 ? 'none' : '1px solid #f8f8f8',
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center'
-                            }}>
-                                <div>
-                                    <span style={{ fontSize: '10px', fontWeight: 800, color: 'var(--primary)' }}>{item.id}</span>
-                                    <p style={{ margin: '2px 0 0 0', fontSize: '13px', fontWeight: 500 }}>{item.desc}</p>
-                                </div>
-                                <Settings size={14} color="#ccc" style={{ cursor: 'pointer' }} />
-                            </div>
-                        ))}
-                        <div style={{ padding: '20px 24px', borderTop: '1px solid #eee', textAlign: 'center' }}>
-                            <button
-                                className="btn btn-sm"
-                                style={{ color: 'var(--primary)', fontWeight: 700 }}
-                                onClick={() => alert(`Cargando inventario completo de ${currentShowcase?.name}...`)}
-                            >
-                                Ver Inventario Completo
-                            </button>
                         </div>
                     </div>
                 </div>

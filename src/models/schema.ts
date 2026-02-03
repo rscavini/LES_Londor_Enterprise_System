@@ -82,11 +82,23 @@ export type WorkshopSpecialty = 'Pulido' | 'Engaste' | 'Grabado' | 'Ajuste de Ta
 export interface TimeRange {
     open: string;
     close: string;
+    isClosed?: boolean;
+}
+
+export interface DaySchedule {
+    morning?: TimeRange;
+    afternoon?: TimeRange;
+    isClosed?: boolean;
 }
 
 export interface BusinessHours {
-    morning?: TimeRange;
-    afternoon?: TimeRange;
+    monday?: DaySchedule;
+    tuesday?: DaySchedule;
+    wednesday?: DaySchedule;
+    thursday?: DaySchedule;
+    friday?: DaySchedule;
+    saturday?: DaySchedule;
+    sunday?: DaySchedule;
 }
 
 // Vitrinas/Secciones de Tienda
@@ -99,7 +111,9 @@ export interface Showcase {
 // Metadatos específicos
 export interface LocationMetadata {
     contactPerson?: string;
-    phone?: string;
+    phone?: string;         // Legacy / General
+    phoneFixed?: string;    // Teléfono fijo
+    phoneMobile?: string;   // Teléfono móvil
     email?: string;
     address?: string;
     // Campos Workshop
@@ -110,7 +124,7 @@ export interface LocationMetadata {
     // Campos Store
     managerName?: string;
     openingHours?: string; // Legacy / Fallback
-    businessHours?: BusinessHours; // Nuevo formato Mon-Sat
+    businessHours?: BusinessHours; // Nuevo formato por días
     showcasesCount?: number;
     securityLevel?: 'LOW' | 'MEDIUM' | 'HIGH' | 'ELITE';
     showcases?: Showcase[];
