@@ -56,8 +56,7 @@ export const DomainService = {
     getValuesByDomain: async (domainId: string): Promise<DomainValue[]> => {
         const q = query(collection(db, VALUE_COLL),
             where('domainId', '==', domainId),
-            where('isActive', '==', true),
-            orderBy('sortOrder', 'asc'));
+            where('isActive', '==', true));
         const querySnapshot = await getDocs(q);
 
         if (querySnapshot.empty) {
@@ -68,7 +67,9 @@ export const DomainService = {
             return defaults;
         }
 
-        return querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as DomainValue[];
+        const values = querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as DomainValue[];
+        // Ordenar en memoria para evitar requerir índices compuestos de Firestore
+        return values.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
     },
 
     createDomain: async (data: Omit<Domain, 'id' | 'createdAt' | 'isActive'>): Promise<Domain> => {
@@ -83,5 +84,35 @@ export const DomainService = {
         const newValue = { ...data, isActive: true, createdAt: serverTimestamp() };
         await setDoc(doc(db, VALUE_COLL, id), newValue);
         return { ...newValue, id, createdAt: new Date() } as DomainValue;
+    },
+
+    updateDomain: async (id: string, updates: Partial<Domain>): Promise<Domain | undefined> => {
+        const docRef = doc(db, DOMAIN_COLL, id);
+        await updateDoc(docRef, updates);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            return { ...docSnap.data(), id: docSnap.id } as Domain;
+        }
+        return undefined;
+    },
+
+    updateValue: async (id: string, updates: Partial<DomainValue>): Promise<DomainValue | undefined> => {
+        const docRef = doc(db, VALUE_COLL, id);
+        await updateDoc(docRef, updates);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            return { ...docSnap.data(), id: docSnap.id } as DomainValue;
+        }
+        return undefined;
+    },
+
+    deleteValueLogic: async (id: string): Promise<boolean> => {
+        const docRef = doc(db, VALUE_COLL, id);
+        try {
+            await updateDoc(docRef, { isActive: false });
+            return true;
+        } catch (e) {
+            return false;
+        }
     }
 };

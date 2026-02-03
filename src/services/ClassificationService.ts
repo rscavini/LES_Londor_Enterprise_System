@@ -113,6 +113,27 @@ export const ClassificationService = {
         });
     },
 
+    toggleMandatory: async (targetId: string, attributeId: string, type: 'category' | 'subcategory'): Promise<void> => {
+        const isCat = type === 'category';
+        const docId = isCat ? `${targetId}__${attributeId}` : `__${targetId}_${attributeId}`;
+        const docRef = doc(db, COLLECTION_NAME, docId);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+            const current = docSnap.data().isMandatory;
+            await updateDoc(docRef, { isMandatory: !current });
+
+            await addDoc(collection(db, AUDIT_COLL), {
+                timestamp: serverTimestamp(),
+                user: 'admin',
+                action: 'UPDATE',
+                targetType: type,
+                targetId,
+                details: `Cambiado atributo ${attributeId} a ${!current ? 'OBILGATORIO' : 'OPCIONAL'}.`
+            });
+        }
+    },
+
     getLogs: async (targetId: string): Promise<AuditLog[]> => {
         const q = query(collection(db, AUDIT_COLL), where('targetId', '==', targetId));
         const querySnapshot = await getDocs(q);
@@ -121,5 +142,28 @@ export const ClassificationService = {
             id: doc.id,
             timestamp: doc.data().timestamp?.toDate()
         })) as AuditLog[];
+    },
+
+    reorderMappings: async (targetId: string, attributeIds: string[], type: 'category' | 'subcategory'): Promise<void> => {
+        const isCat = type === 'category';
+        const batch = writeBatch(db);
+
+        for (let i = 0; i < attributeIds.length; i++) {
+            const attrId = attributeIds[i];
+            const docId = isCat ? `${targetId}__${attrId}` : `__${targetId}_${attrId}`;
+            const docRef = doc(db, COLLECTION_NAME, docId);
+            batch.update(docRef, { sortOrder: i });
+        }
+
+        await batch.commit();
+
+        await addDoc(collection(db, AUDIT_COLL), {
+            timestamp: serverTimestamp(),
+            user: 'admin',
+            action: 'REORDER',
+            targetType: type,
+            targetId,
+            details: `Reordenado catálogo de atributos.`
+        });
     }
 };

@@ -115,7 +115,7 @@ const ClassificationControlTower: React.FC = () => {
         }
     };
 
-    const handleRemoveAttribute = (attrId: string) => {
+    const handleRemoveAttribute = async (attrId: string) => {
         const mapping = mappedAttributes.find(m => m.attributeId === attrId);
         if (!mapping) return;
 
@@ -136,33 +136,33 @@ const ClassificationControlTower: React.FC = () => {
 
         if (window.confirm(confirmMsg)) {
             if (targetId) {
-                ClassificationService.removeMapping(targetId, attrId, type);
-                refreshMappedAttributes();
+                await ClassificationService.removeMapping(targetId, attrId, type);
+                await refreshMappedAttributes();
             }
         }
     };
 
-    const handleDeleteGlobalAttribute = (e: React.MouseEvent, id: string) => {
+    const handleDeleteGlobalAttribute = async (e: React.MouseEvent, id: string) => {
         e.stopPropagation();
         const attr = allAttributes.find(a => a.id === id);
         if (!attr) return;
 
         if (window.confirm(`¿Seguro que desea eliminar DEFINITIVAMENTE el atributo "${attr.name}" del catálogo maestro?`)) {
             if (window.confirm(`ESTA ACCIÓN ES IRREVERSIBLE.\nSe eliminará de todas las categorías y subcategorías donde esté vinculado.\n\n¿Está totalmente seguro?`)) {
-                AttributeService.deleteLogic(id);
-                loadBaseData(); // Refrescar lista global
-                refreshMappedAttributes(); // Refrescar vista actual
+                await AttributeService.deleteLogic(id);
+                await loadBaseData(); // Refrescar lista global
+                await refreshMappedAttributes(); // Refrescar vista actual
             }
         }
     };
 
-    const handleAddAttribute = (attrId: string) => {
+    const handleAddAttribute = async (attrId: string) => {
         const targetId = selectedSubId || selectedCatId;
         const type = selectedSubId ? 'subcategory' : 'category';
         if (!targetId) return;
 
-        ClassificationService.addMapping(targetId, attrId, type);
-        refreshMappedAttributes();
+        await ClassificationService.addMapping(targetId, attrId, type);
+        await refreshMappedAttributes();
         setIsAddAttrModalOpen(false);
         setAttrSearchQuery(''); // Reset search
     };
@@ -173,14 +173,14 @@ const ClassificationControlTower: React.FC = () => {
         setIsEditGlobalModalOpen(true);
     };
 
-    const handleSaveGlobalAttr = (e: React.FormEvent) => {
+    const handleSaveGlobalAttr = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!editingGlobalAttr) return;
 
-        AttributeService.update(editingGlobalAttr.id, editingGlobalAttr);
+        await AttributeService.update(editingGlobalAttr.id, editingGlobalAttr);
         setIsEditGlobalModalOpen(false);
         setEditingGlobalAttr(null);
-        loadBaseData();
+        await loadBaseData();
     };
 
     const sensors = useSensors(
@@ -190,7 +190,7 @@ const ClassificationControlTower: React.FC = () => {
         })
     );
 
-    const handleDragEnd = (event: DragEndEvent) => {
+    const handleDragEnd = async (event: DragEndEvent) => {
         const { active, over } = event;
         if (!over || active.id === over.id) return;
 
@@ -204,8 +204,8 @@ const ClassificationControlTower: React.FC = () => {
         const type = selectedSubId ? 'subcategory' : 'category';
 
         if (targetId) {
-            ClassificationService.reorderMappings(targetId, newMapped.map(m => m.attributeId), type);
-            if (activeTab === 'logs') refreshLogs();
+            await ClassificationService.reorderMappings(targetId, newMapped.map(m => m.attributeId), type);
+            if (activeTab === 'logs') await refreshLogs();
         }
     };
 

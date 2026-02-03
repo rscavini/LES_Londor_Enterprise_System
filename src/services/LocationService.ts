@@ -5,8 +5,8 @@ import { Location } from '../models/schema';
 const COLLECTION_NAME = 'locations';
 
 const initialLocations: Location[] = [
-    { id: 'loc_1', name: 'Tienda Principal', address: 'Calle Mayor 1', type: 'STORE', isActive: true, createdAt: new Date() },
-    { id: 'loc_2', name: 'Almacén Central', address: 'Polígono Ind.', type: 'WAREHOUSE', isActive: true, createdAt: new Date() }
+    { id: 'loc_1', name: 'Tienda Principal', address: 'Calle Mayor 1', type: 'STORE', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'loc_2', name: 'Almacén Central', address: 'Polígono Ind.', type: 'OTHER', isActive: true, createdAt: new Date(), createdBy: 'system' }
 ];
 
 export const LocationService = {

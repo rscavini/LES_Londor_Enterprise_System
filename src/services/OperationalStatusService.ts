@@ -5,9 +5,9 @@ import { OperationalStatus } from '../models/schema';
 const COLLECTION_NAME = 'operational_statuses';
 
 const initialStatuses: OperationalStatus[] = [
-    { id: 'stat_available', name: 'Disponible', color: '#10b981', isActive: true, createdAt: new Date() },
-    { id: 'stat_sold', name: 'Vendido', color: '#ef4444', isActive: true, createdAt: new Date() },
-    { id: 'stat_reserved', name: 'Reservado', color: '#f59e0b', isActive: true, createdAt: new Date() }
+    { id: 'stat_available', name: 'Disponible', color: '#10b981', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'stat_sold', name: 'Vendido', color: '#ef4444', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'stat_reserved', name: 'Reservado', color: '#f59e0b', isActive: true, createdAt: new Date(), createdBy: 'system' }
 ];
 
 export const OperationalStatusService = {

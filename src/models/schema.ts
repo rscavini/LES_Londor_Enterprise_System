@@ -69,6 +69,7 @@ export interface DomainValue {
 export interface OperationalStatus {
     id: string;
     name: string;
+    color?: string;
     isActive: boolean;
     createdAt: Date;
     createdBy: string;
@@ -170,6 +171,7 @@ export type LocationType = 'WORKSHOP' | 'STORE' | 'OTHER';
 export interface Location {
     id: string;
     name: string;
+    address?: string;
     type: LocationType;
     metadata?: LocationMetadata;
     isActive: boolean;

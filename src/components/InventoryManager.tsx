@@ -51,6 +51,7 @@ const InventoryManager: React.FC = () => {
 
     // UI State
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [editingItemId, setEditingItemId] = useState<string | null>(null);
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
     const [searchTerm, setSearchTerm] = useState('');
     const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
@@ -167,21 +168,25 @@ const InventoryManager: React.FC = () => {
         }
     };
 
-    const handleCreate = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setIsScanning(true); // Usar loading state para creación también si se prefiere
+        setIsScanning(true);
         try {
-            await InventoryService.create({
-                ...formData,
-                images: [],
-                createdBy: 'admin'
-            });
+            if (editingItemId) {
+                await InventoryService.update(editingItemId, formData);
+            } else {
+                await InventoryService.create({
+                    ...formData,
+                    images: [],
+                    createdBy: 'admin'
+                });
+            }
             setIsAddModalOpen(false);
             resetForm();
             await loadData();
         } catch (error) {
-            console.error("Error creating item:", error);
-            alert("No se pudo crear la pieza.");
+            console.error("Error saving item:", error);
+            alert("No se pudo guardar la pieza.");
         } finally {
             setIsScanning(false);
         }
@@ -201,6 +206,7 @@ const InventoryManager: React.FC = () => {
             attributes: {}
         });
         setDynamicFields([]);
+        setEditingItemId(null);
     };
 
     const handleAttrChange = (attrId: string, value: any) => {
@@ -211,6 +217,24 @@ const InventoryManager: React.FC = () => {
                 [attrId]: value
             }
         }));
+    };
+
+    const handleEdit = (item: InventoryItem) => {
+        setFormData({
+            name: item.name,
+            description: item.description,
+            categoryId: item.categoryId,
+            subcategoryId: item.subcategoryId,
+            locationId: item.locationId,
+            statusId: item.statusId,
+            purchasePrice: item.purchasePrice || 0,
+            salePrice: item.salePrice || 0,
+            mainWeight: item.mainWeight || 0,
+            attributes: item.attributes || {}
+        });
+        setEditingItemId(item.id);
+        setSelectedDetailItem(null); // Close detail drawer
+        setIsAddModalOpen(true);
     };
 
     const fileToBase64 = (file: File): Promise<string> => {
@@ -600,7 +624,7 @@ const InventoryManager: React.FC = () => {
                     <div className="glass-card" style={{ padding: '40px', width: '800px', backgroundColor: 'white', maxHeight: '90vh', overflowY: 'auto' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                                <h2 style={{ margin: 0 }}>Alta de Nueva Pieza</h2>
+                                <h2 style={{ margin: 0 }}>{editingItemId ? 'Editar Pieza' : 'Alta de Nueva Pieza'}</h2>
                                 <button
                                     type="button"
                                     className="btn btn-accent"
@@ -623,10 +647,10 @@ const InventoryManager: React.FC = () => {
                                                 categoryId: lastItem.categoryId,
                                                 subcategoryId: lastItem.subcategoryId,
                                                 locationId: lastItem.locationId,
-                                                purchasePrice: lastItem.purchasePrice,
-                                                salePrice: lastItem.salePrice,
-                                                mainWeight: lastItem.mainWeight,
-                                                attributes: { ...lastItem.attributes }
+                                                purchasePrice: lastItem.purchasePrice || 0,
+                                                salePrice: lastItem.salePrice || 0,
+                                                mainWeight: lastItem.mainWeight || 0,
+                                                attributes: { ...(lastItem.attributes || {}) }
                                             });
                                         }
                                     }}
@@ -645,7 +669,7 @@ const InventoryManager: React.FC = () => {
                             <button className="btn" onClick={() => setIsAddModalOpen(false)}>Esc</button>
                         </div>
 
-                        <form onSubmit={handleCreate}>
+                        <form onSubmit={handleSubmit}>
                             <div style={{ marginBottom: '32px' }}>
                                 <label style={{ display: 'block', marginBottom: '12px', fontWeight: 600 }}>Media (Fotos de la Pieza)</label>
                                 <input
@@ -841,7 +865,7 @@ const InventoryManager: React.FC = () => {
                             <div style={{ marginTop: '40px', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
                                 <button type="button" className="btn" onClick={() => setIsAddModalOpen(false)}>Cancelar</button>
                                 <button type="submit" className="btn btn-primary" style={{ padding: '12px 32px' }}>
-                                    Crear Pieza y Generar Código
+                                    {editingItemId ? 'Guardar Cambios' : 'Crear Pieza y Generar Código'}
                                 </button>
                             </div>
                         </form>
@@ -1040,7 +1064,11 @@ const InventoryManager: React.FC = () => {
                         </div>
 
                         <div style={{ padding: '24px 40px', borderTop: '1px solid #eee', display: 'flex', gap: '12px' }}>
-                            <button className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }}>
+                            <button
+                                className="btn btn-primary"
+                                style={{ flex: 1, justifyContent: 'center' }}
+                                onClick={() => handleEdit(selectedDetailItem)}
+                            >
                                 Editar Ficha
                             </button>
                             <button className="btn" style={{ flex: 1, justifyContent: 'center', border: '1px solid #ddd' }}>

@@ -6,28 +6,28 @@ const COLLECTION_NAME = 'subcategories';
 
 const initialSubcategories: Subcategory[] = [
     // ANILLOS
-    { id: 'sub_an_solitario', categoryId: 'cat_anillos', name: 'Anillos Solitarios', description: 'Anillo con una sola piedra central.', isActive: true, createdAt: new Date() },
-    { id: 'sub_an_alianza', categoryId: 'cat_anillos', name: 'Alianzas', description: 'Alianzas de boda o compromiso.', isActive: true, createdAt: new Date() },
-    { id: 'sub_an_sello', categoryId: 'cat_anillos', name: 'Sellos', description: 'Anillos tipo sello.', isActive: true, createdAt: new Date() },
+    { id: 'sub_an_solitario', categoryId: 'cat_anillos', name: 'Anillos Solitarios', description: 'Anillo con una sola piedra central.', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'sub_an_alianza', categoryId: 'cat_anillos', name: 'Alianzas', description: 'Alianzas de boda o compromiso.', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'sub_an_sello', categoryId: 'cat_anillos', name: 'Sellos', description: 'Anillos tipo sello.', isActive: true, createdAt: new Date(), createdBy: 'system' },
     // RELOJES
-    { id: 'sub_re_deportivo', categoryId: 'cat_relojes', name: 'Relojes Deportivos', description: 'Relojes con enfoque deportivo.', isActive: true, createdAt: new Date() },
-    { id: 'sub_re_vestir', categoryId: 'cat_relojes', name: 'Relojes de Vestir', description: 'Relojes elegantes/clásicos.', isActive: true, createdAt: new Date() },
+    { id: 'sub_re_deportivo', categoryId: 'cat_relojes', name: 'Relojes Deportivos', description: 'Relojes con enfoque deportivo.', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'sub_re_vestir', categoryId: 'cat_relojes', name: 'Relojes de Vestir', description: 'Relojes elegantes/clásicos.', isActive: true, createdAt: new Date(), createdBy: 'system' },
     // PULSERAS
-    { id: 'sub_pu_rigida', categoryId: 'cat_pulseras', name: 'Pulseras Rígidas', description: 'Brazaletes y pulseras rígidas.', isActive: true, createdAt: new Date() },
-    { id: 'sub_pu_cadena', categoryId: 'cat_pulseras', name: 'Pulseras de Cadena', description: 'Pulseras eslabonadas.', isActive: true, createdAt: new Date() },
+    { id: 'sub_pu_rigida', categoryId: 'cat_pulseras', name: 'Pulseras Rígidas', description: 'Brazaletes y pulseras rígidas.', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'sub_pu_cadena', categoryId: 'cat_pulseras', name: 'Pulseras de Cadena', description: 'Pulseras eslabonadas.', isActive: true, createdAt: new Date(), createdBy: 'system' },
     // PENDIENTES
-    { id: 'sub_pe_boton', categoryId: 'cat_pendientes', name: 'Pendientes de Botón', description: 'Pegados al lóbulo.', isActive: true, createdAt: new Date() },
-    { id: 'sub_pe_aro', categoryId: 'cat_pendientes', name: 'Aros / Criollas', description: 'Pendientes circulares.', isActive: true, createdAt: new Date() },
-    { id: 'sub_pe_largo', categoryId: 'cat_pendientes', name: 'Pendientes Largos', description: 'Cuelgan del lóbulo.', isActive: true, createdAt: new Date() },
+    { id: 'sub_pe_boton', categoryId: 'cat_pendientes', name: 'Pendientes de Botón', description: 'Pegados al lóbulo.', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'sub_pe_aro', categoryId: 'cat_pendientes', name: 'Aros / Criollas', description: 'Pendientes circulares.', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'sub_pe_largo', categoryId: 'cat_pendientes', name: 'Pendientes Largos', description: 'Cuelgan del lóbulo.', isActive: true, createdAt: new Date(), createdBy: 'system' },
     // COLLARES
-    { id: 'sub_co_gargantilla', categoryId: 'cat_collares', name: 'Gargantillas', description: 'Collares cortos ajustados.', isActive: true, createdAt: new Date() },
-    { id: 'sub_co_perlas', categoryId: 'cat_collares', name: 'Collares de Perlas', description: 'Hilos de perlas.', isActive: true, createdAt: new Date() },
+    { id: 'sub_co_gargantilla', categoryId: 'cat_collares', name: 'Gargantillas', description: 'Collares cortos ajustados.', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'sub_co_perlas', categoryId: 'cat_collares', name: 'Collares de Perlas', description: 'Hilos de perlas.', isActive: true, createdAt: new Date(), createdBy: 'system' },
     // COLGANTES
-    { id: 'sub_cg_solitario', categoryId: 'cat_colgantes', name: 'Colgantes Solitarios', description: 'Una sola piedra o motivo.', isActive: true, createdAt: new Date() },
-    { id: 'sub_cg_medalla', categoryId: 'cat_colgantes', name: 'Medallas / Cruces', description: 'Elementos religiosos o planos.', isActive: true, createdAt: new Date() },
+    { id: 'sub_cg_solitario', categoryId: 'cat_colgantes', name: 'Colgantes Solitarios', description: 'Una sola piedra o motivo.', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'sub_cg_medalla', categoryId: 'cat_colgantes', name: 'Medallas / Cruces', description: 'Elementos religiosos o planos.', isActive: true, createdAt: new Date(), createdBy: 'system' },
     // CADENAS
-    { id: 'sub_ca_fina', categoryId: 'cat_cadenas', name: 'Cadenas Finas', description: 'Cadenas de poco grosor.', isActive: true, createdAt: new Date() },
-    { id: 'sub_ca_cordon', categoryId: 'cat_cadenas', name: 'Cordones / Bismark', description: 'Cadenas más gruesas o trenzadas.', isActive: true, createdAt: new Date() }
+    { id: 'sub_ca_fina', categoryId: 'cat_cadenas', name: 'Cadenas Finas', description: 'Cadenas de poco grosor.', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'sub_ca_cordon', categoryId: 'cat_cadenas', name: 'Cordones / Bismark', description: 'Cadenas más gruesas o trenzadas.', isActive: true, createdAt: new Date(), createdBy: 'system' }
 ];
 
 export const SubcategoryService = {

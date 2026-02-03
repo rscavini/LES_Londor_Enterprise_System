@@ -179,7 +179,7 @@ const DomainAttributeManager: React.FC = () => {
     const handleDeleteValue = async (id: string, value: string) => {
         if (window.confirm(`¿Seguro que desea eliminar el valor "${value}" de este dominio?`)) {
             if (window.confirm(`Confirme nuevamente: ¿Está seguro de borrar "${value}"?`)) {
-                await DomainService.deleteValue(id);
+                await DomainService.deleteValueLogic(id);
                 if (selectedDomainId) {
                     const vals = await DomainService.getValuesByDomain(selectedDomainId);
                     setSelectedDomainValues(vals);
