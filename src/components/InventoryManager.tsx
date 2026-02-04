@@ -77,6 +77,7 @@ const InventoryManager: React.FC = () => {
         purchasePrice: 0,
         salePrice: 0,
         mainWeight: 0,
+        isApproved: false,
         attributes: {} as Record<string, any>
     });
 
@@ -209,6 +210,7 @@ const InventoryManager: React.FC = () => {
             purchasePrice: 0,
             salePrice: 0,
             mainWeight: 0,
+            isApproved: false,
             attributes: {}
         });
         setDynamicFields([]);
@@ -238,6 +240,7 @@ const InventoryManager: React.FC = () => {
             purchasePrice: item.purchasePrice || 0,
             salePrice: item.salePrice || 0,
             mainWeight: item.mainWeight || 0,
+            isApproved: item.isApproved || false,
             attributes: item.attributes || {}
         });
         setEditingItemId(item.id);

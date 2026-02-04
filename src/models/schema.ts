@@ -101,6 +101,14 @@ export interface BusinessHours {
     sunday?: DaySchedule;
 }
 
+// Fechas especiales (Festivos, Cierres, etc.)
+export interface SpecialDate {
+    id: string;
+    date: string; // ISO string YYYY-MM-DD
+    label: string;
+    isClosed: boolean;
+}
+
 // Vitrinas/Secciones de Tienda
 export interface Showcase {
     id: string;
@@ -125,6 +133,8 @@ export interface LocationMetadata {
     managerName?: string;
     openingHours?: string; // Legacy / Fallback
     businessHours?: BusinessHours; // Nuevo formato por días
+    specialDates?: SpecialDate[];  // Festivos y cierres
+    managerNotes?: string;        // Notas internas del gerente
     showcasesCount?: number;
     securityLevel?: 'LOW' | 'MEDIUM' | 'HIGH' | 'ELITE';
     showcases?: Showcase[];
@@ -158,6 +168,8 @@ export interface InventoryItem {
     // Estado y Ubicación
     statusId: string;         // FK a OperationalStatus
     locationId: string;       // FK a Location
+    showcaseId?: string;      // Opcional: ID de la vitrina donde se encuentra
+    isApproved: boolean;      // Si la pieza ha sido aprobada para venta/exhibición
 
     // Valores Económicos (Básicos Fase 1)
     purchasePrice?: number;   // Coste

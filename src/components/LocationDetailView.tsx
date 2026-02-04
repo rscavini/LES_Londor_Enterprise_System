@@ -17,9 +17,12 @@ import {
     Settings,
     ArrowRight,
     Trash2,
+    Calendar,
+    Save,
+    X,
     Image as ImageIcon
 } from 'lucide-react';
-import { Location, WorkshopSpecialty, InventoryItem } from '../models/schema';
+import { Location, WorkshopSpecialty, InventoryItem, SpecialDate } from '../models/schema';
 import { InventoryService } from '../services/InventoryService';
 
 interface Props {
@@ -49,7 +52,10 @@ const LocationDetailView: React.FC<Props> = ({ location, onBack, onSave }) => {
     const [newOrder, setNewOrder] = useState({ pieceId: '', workType: 'ENGASTE' });
     const [inventory, setInventory] = useState<InventoryItem[]>([]);
     const [isLoadingInventory, setIsLoadingInventory] = useState(false);
-    const [storeActiveTab, setStoreActiveTab] = useState<'showcases' | 'general_stock'>('showcases');
+    const [storeActiveTab, setStoreActiveTab] = useState<'info' | 'schedule' | 'showcases' | 'general_stock'>('info');
+    const [isAssigningPiece, setIsAssigningPiece] = useState(false);
+    const [isAddingSpecialDate, setIsAddingSpecialDate] = useState(false);
+    const [newSpecialDate, setNewSpecialDate] = useState({ date: '', label: '', isClosed: true });
 
     // Vitrinas por defecto si no hay ninguna
     const defaultShowcases = [
@@ -133,6 +139,38 @@ const LocationDetailView: React.FC<Props> = ({ location, onBack, onSave }) => {
             metadata: {
                 ...editData.metadata,
                 specialties: next
+            }
+        });
+    };
+
+    const handleAddSpecialDate = () => {
+        if (!newSpecialDate.date || !newSpecialDate.label) return;
+
+        const dateObj: SpecialDate = {
+            id: Date.now().toString(),
+            ...newSpecialDate
+        };
+
+        const currentDates = editData.metadata?.specialDates || [];
+        setEditData({
+            ...editData,
+            metadata: {
+                ...editData.metadata,
+                specialDates: [...currentDates, dateObj]
+            }
+        });
+
+        setNewSpecialDate({ date: '', label: '', isClosed: true });
+        setIsAddingSpecialDate(false);
+    };
+
+    const handleRemoveSpecialDate = (id: string) => {
+        const currentDates = editData.metadata?.specialDates || [];
+        setEditData({
+            ...editData,
+            metadata: {
+                ...editData.metadata,
+                specialDates: currentDates.filter(d => d.id !== id)
             }
         });
     };
@@ -370,26 +408,26 @@ const LocationDetailView: React.FC<Props> = ({ location, onBack, onSave }) => {
     const renderStoreView = () => {
         const currentShowcase = showcases[selectedShowcaseIndex];
 
-        // Stock simulado por vitrina
-        const stockByShowcase: Record<string, any[]> = {
-            '1': [
-                { id: 'LD-4592', desc: 'Anillo de compromiso 18K' },
-                { id: 'LD-8821', desc: 'Brazalete rígido oro blanco' }
-            ],
-            '2': [
-                { id: 'LD-1029', desc: 'Pendientes Brillantes 1.2ct' }
-            ],
-            'default': [
-                { id: 'LD-0000', desc: 'Item de ejemplo genérico' }
-            ]
-        };
-
-        const currentStock = stockByShowcase[currentShowcase?.id] || stockByShowcase['default'];
+        const currentStock = inventory.filter(item => item.showcaseId === currentShowcase?.id);
 
         return (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
                 {/* Store Tabs */}
                 <div className="glass-card" style={{ padding: '6px', borderRadius: '12px', display: 'inline-flex', alignSelf: 'flex-start' }}>
+                    <button
+                        className={`btn-sm ${storeActiveTab === 'info' ? 'btn-primary' : ''}`}
+                        onClick={() => setStoreActiveTab('info')}
+                        style={{ border: 'none', background: storeActiveTab === 'info' ? 'var(--primary)' : 'transparent', color: storeActiveTab === 'info' ? 'white' : 'var(--text-muted)', padding: '8px 20px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}
+                    >
+                        Información
+                    </button>
+                    <button
+                        className={`btn-sm ${storeActiveTab === 'schedule' ? 'btn-primary' : ''}`}
+                        onClick={() => setStoreActiveTab('schedule')}
+                        style={{ border: 'none', background: storeActiveTab === 'schedule' ? 'var(--primary)' : 'transparent', color: storeActiveTab === 'schedule' ? 'white' : 'var(--text-muted)', padding: '8px 20px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}
+                    >
+                        Horarios y Calendario
+                    </button>
                     <button
                         className={`btn-sm ${storeActiveTab === 'showcases' ? 'btn-primary' : ''}`}
                         onClick={() => setStoreActiveTab('showcases')}
@@ -406,269 +444,275 @@ const LocationDetailView: React.FC<Props> = ({ location, onBack, onSave }) => {
                     </button>
                 </div>
 
-                {storeActiveTab === 'showcases' ? (
-                    <div style={{ display: 'grid', gridTemplateColumns: '380px 300px 1fr', gap: '24px', alignItems: 'start' }}>
-                        {/* 1. INFORMACIÓN GENERAL (CONTACTO + HORARIOS) */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                            {/* DATOS BÁSICOS / CONTACTO */}
-                            <div className="glass-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                                <h4 style={{ margin: 0, textTransform: 'uppercase', fontSize: '11px', letterSpacing: '1px', color: 'var(--text-muted)' }}>Información de la Tienda</h4>
-
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                    <div>
-                                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)' }}>
-                                            <User size={12} /> Persona de Contacto
-                                        </label>
-                                        <input
-                                            className="form-control"
-                                            disabled={!isEditing}
-                                            placeholder="Nombre del responsable"
-                                            value={editData.metadata?.contactPerson || ''}
-                                            onChange={e => setEditData({ ...editData, metadata: { ...editData.metadata, contactPerson: e.target.value } })}
-                                            style={{ width: '100%', fontSize: '13px' }}
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)' }}>
-                                            <Mail size={12} /> Correo Electrónico
-                                        </label>
-                                        <input
-                                            className="form-control"
-                                            disabled={!isEditing}
-                                            placeholder="email@ejemplo.com"
-                                            value={editData.metadata?.email || ''}
-                                            onChange={e => setEditData({ ...editData, metadata: { ...editData.metadata, email: e.target.value } })}
-                                            style={{ width: '100%', fontSize: '13px' }}
-                                        />
-                                    </div>
-
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                                        <div>
-                                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)' }}>
-                                                <Phone size={12} /> Tel. Fijo
-                                            </label>
-                                            <input
-                                                className="form-control"
-                                                disabled={!isEditing}
-                                                placeholder="91-..."
-                                                value={editData.metadata?.phoneFixed || ''}
-                                                onChange={e => setEditData({ ...editData, metadata: { ...editData.metadata, phoneFixed: e.target.value } })}
-                                                style={{ width: '100%', fontSize: '13px' }}
-                                            />
-                                        </div>
-                                        <div>
-                                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)' }}>
-                                                <Phone size={12} /> Móvil
-                                            </label>
-                                            <input
-                                                className="form-control"
-                                                disabled={!isEditing}
-                                                placeholder="6..."
-                                                value={editData.metadata?.phoneMobile || ''}
-                                                onChange={e => setEditData({ ...editData, metadata: { ...editData.metadata, phoneMobile: e.target.value } })}
-                                                style={{ width: '100%', fontSize: '13px' }}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)' }}>
-                                            <MapPin size={12} /> Dirección
-                                        </label>
-                                        <textarea
-                                            className="form-control"
-                                            disabled={!isEditing}
-                                            rows={2}
-                                            value={editData.metadata?.address || ''}
-                                            onChange={e => setEditData({ ...editData, metadata: { ...editData.metadata, address: e.target.value } })}
-                                            style={{ width: '100%', fontSize: '13px', resize: 'none' }}
-                                        />
-                                    </div>
-                                </div>
+                {storeActiveTab === 'info' && (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px' }}>
+                        <div className="glass-card" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--accent)' }}>
+                                <User size={24} />
+                                <h3 style={{ margin: 0 }}>Contacto y Ubicación</h3>
                             </div>
 
-                            {/* HORARIOS */}
-                            <div className="glass-card" style={{ padding: '24px' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                                    <h4 style={{ margin: 0, textTransform: 'uppercase', fontSize: '11px', letterSpacing: '1px', color: 'var(--text-muted)' }}>Horarios de Apertura</h4>
-                                    <Clock size={16} color="var(--text-muted)" />
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)' }}>Responsable / Gerente</label>
+                                    <input
+                                        className="form-control"
+                                        disabled={!isEditing}
+                                        value={editData.metadata?.managerName || ''}
+                                        onChange={e => setEditData({ ...editData, metadata: { ...editData.metadata, managerName: e.target.value } })}
+                                        style={{ width: '100%' }}
+                                    />
                                 </div>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                    {daysOfWeek.map(day => {
-                                        const schedule = editData.metadata?.businessHours?.[day.key] || {
-                                            morning: { open: '10:00', close: '14:00', isClosed: false },
-                                            afternoon: { open: '17:00', close: '20:30', isClosed: false }
-                                        };
 
-                                        return (
-                                            <div key={day.key} style={{
-                                                padding: '10px 12px',
-                                                borderRadius: '8px',
-                                                backgroundColor: '#f9f9f9',
-                                                border: '1px solid #eee'
-                                            }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                                                    <span style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>{day.label}</span>
-                                                </div>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)' }}>Correo Electrónico</label>
+                                    <input
+                                        className="form-control"
+                                        disabled={!isEditing}
+                                        value={editData.metadata?.email || ''}
+                                        onChange={e => setEditData({ ...editData, metadata: { ...editData.metadata, email: e.target.value } })}
+                                        style={{ width: '100%' }}
+                                    />
+                                </div>
 
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                                    {/* Mañana */}
-                                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                            <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>MAÑANA:</span>
-                                                            {isEditing && (
-                                                                <label style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '9px', opacity: 0.8, cursor: 'pointer' }}>
-                                                                    <input
-                                                                        type="checkbox"
-                                                                        checked={schedule.morning?.isClosed || false}
-                                                                        onChange={e => {
-                                                                            const bh = editData.metadata?.businessHours || {};
-                                                                            const d = bh[day.key] || schedule;
-                                                                            const morning = d.morning || { open: '10:00', close: '14:00' };
-                                                                            setEditData({
-                                                                                ...editData,
-                                                                                metadata: {
-                                                                                    ...editData.metadata,
-                                                                                    businessHours: { ...bh, [day.key]: { ...d, morning: { ...morning, isClosed: e.target.checked } } }
-                                                                                }
-                                                                            });
-                                                                        }}
-                                                                    />
-                                                                    Cerrado
-                                                                </label>
-                                                            )}
-                                                        </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                                    <div>
+                                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)' }}>Tel. Fijo</label>
+                                        <input
+                                            className="form-control"
+                                            disabled={!isEditing}
+                                            value={editData.metadata?.phoneFixed || ''}
+                                            onChange={e => setEditData({ ...editData, metadata: { ...editData.metadata, phoneFixed: e.target.value } })}
+                                            style={{ width: '100%' }}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)' }}>Tel. Móvil</label>
+                                        <input
+                                            className="form-control"
+                                            disabled={!isEditing}
+                                            value={editData.metadata?.phoneMobile || ''}
+                                            onChange={e => setEditData({ ...editData, metadata: { ...editData.metadata, phoneMobile: e.target.value } })}
+                                            style={{ width: '100%' }}
+                                        />
+                                    </div>
+                                </div>
 
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                            {(schedule.morning?.isClosed && !isEditing) ? (
-                                                                <span style={{ fontSize: '10px', color: 'var(--error)', fontWeight: 600 }}>CERRADO</span>
-                                                            ) : (
-                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', opacity: schedule.morning?.isClosed ? 0.3 : 1 }}>
-                                                                    <input
-                                                                        type="time"
-                                                                        disabled={!isEditing || schedule.morning?.isClosed}
-                                                                        value={schedule.morning?.open || ''}
-                                                                        onChange={e => {
-                                                                            const bh = editData.metadata?.businessHours || {};
-                                                                            const d = bh[day.key] || schedule;
-                                                                            const morning = d.morning || { open: '', close: '' };
-                                                                            setEditData({
-                                                                                ...editData,
-                                                                                metadata: {
-                                                                                    ...editData.metadata,
-                                                                                    businessHours: { ...bh, [day.key]: { ...d, morning: { ...morning, open: e.target.value } } }
-                                                                                }
-                                                                            });
-                                                                        }}
-                                                                        style={{ border: 'none', background: 'transparent', padding: 0, fontSize: '11px', width: 'auto' }}
-                                                                    />
-                                                                    <span style={{ fontSize: '10px', opacity: 0.3 }}>-</span>
-                                                                    <input
-                                                                        type="time"
-                                                                        disabled={!isEditing || schedule.morning?.isClosed}
-                                                                        value={schedule.morning?.close || ''}
-                                                                        onChange={e => {
-                                                                            const bh = editData.metadata?.businessHours || {};
-                                                                            const d = bh[day.key] || schedule;
-                                                                            const morning = d.morning || { open: '', close: '' };
-                                                                            setEditData({
-                                                                                ...editData,
-                                                                                metadata: {
-                                                                                    ...editData.metadata,
-                                                                                    businessHours: { ...bh, [day.key]: { ...d, morning: { ...morning, close: e.target.value } } }
-                                                                                }
-                                                                            });
-                                                                        }}
-                                                                        style={{ border: 'none', background: 'transparent', padding: 0, fontSize: '11px', width: 'auto' }}
-                                                                    />
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Tarde */}
-                                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                            <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>TARDE:</span>
-                                                            {isEditing && (
-                                                                <label style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '9px', opacity: 0.8, cursor: 'pointer' }}>
-                                                                    <input
-                                                                        type="checkbox"
-                                                                        checked={schedule.afternoon?.isClosed || false}
-                                                                        onChange={e => {
-                                                                            const bh = editData.metadata?.businessHours || {};
-                                                                            const d = bh[day.key] || schedule;
-                                                                            const afternoon = d.afternoon || { open: '17:00', close: '20:30' };
-                                                                            setEditData({
-                                                                                ...editData,
-                                                                                metadata: {
-                                                                                    ...editData.metadata,
-                                                                                    businessHours: { ...bh, [day.key]: { ...d, afternoon: { ...afternoon, isClosed: e.target.checked } } }
-                                                                                }
-                                                                            });
-                                                                        }}
-                                                                    />
-                                                                    Cerrado
-                                                                </label>
-                                                            )}
-                                                        </div>
-
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                            {(schedule.afternoon?.isClosed && !isEditing) ? (
-                                                                <span style={{ fontSize: '10px', color: 'var(--error)', fontWeight: 600 }}>CERRADO</span>
-                                                            ) : (
-                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', opacity: schedule.afternoon?.isClosed ? 0.3 : 1 }}>
-                                                                    <input
-                                                                        type="time"
-                                                                        disabled={!isEditing || schedule.afternoon?.isClosed}
-                                                                        value={schedule.afternoon?.open || ''}
-                                                                        onChange={e => {
-                                                                            const bh = editData.metadata?.businessHours || {};
-                                                                            const d = bh[day.key] || schedule;
-                                                                            const afternoon = d.afternoon || { open: '', close: '' };
-                                                                            setEditData({
-                                                                                ...editData,
-                                                                                metadata: {
-                                                                                    ...editData.metadata,
-                                                                                    businessHours: { ...bh, [day.key]: { ...d, afternoon: { ...afternoon, open: e.target.value } } }
-                                                                                }
-                                                                            });
-                                                                        }}
-                                                                        style={{ border: 'none', background: 'transparent', padding: 0, fontSize: '11px', width: 'auto' }}
-                                                                    />
-                                                                    <span style={{ fontSize: '10px', opacity: 0.3 }}>-</span>
-                                                                    <input
-                                                                        type="time"
-                                                                        disabled={!isEditing || schedule.afternoon?.isClosed}
-                                                                        value={schedule.afternoon?.close || ''}
-                                                                        onChange={e => {
-                                                                            const bh = editData.metadata?.businessHours || {};
-                                                                            const d = bh[day.key] || schedule;
-                                                                            const afternoon = d.afternoon || { open: '', close: '' };
-                                                                            setEditData({
-                                                                                ...editData,
-                                                                                metadata: {
-                                                                                    ...editData.metadata,
-                                                                                    businessHours: { ...bh, [day.key]: { ...d, afternoon: { ...afternoon, close: e.target.value } } }
-                                                                                }
-                                                                            });
-                                                                        }}
-                                                                        style={{ border: 'none', background: 'transparent', padding: 0, fontSize: '11px', width: 'auto' }}
-                                                                    />
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)' }}>Dirección Física</label>
+                                    <textarea
+                                        className="form-control"
+                                        disabled={!isEditing}
+                                        rows={3}
+                                        value={editData.metadata?.address || ''}
+                                        onChange={e => setEditData({ ...editData, metadata: { ...editData.metadata, address: e.target.value } })}
+                                        style={{ width: '100%', resize: 'none' }}
+                                    />
                                 </div>
                             </div>
                         </div>
 
-                        {/* 2. SELECTOR DE VITRINAS */}
+                        <div className="glass-card" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--text-muted)' }}>
+                                <FileText size={24} />
+                                <h3 style={{ margin: 0 }}>Notas Adicionales</h3>
+                            </div>
+                            <textarea
+                                className="form-control"
+                                disabled={!isEditing}
+                                rows={10}
+                                value={editData.metadata?.managerNotes || ''}
+                                onChange={e => setEditData({ ...editData, metadata: { ...editData.metadata, managerNotes: e.target.value } })}
+                                placeholder="Notas internas para la gestión de la tienda..."
+                                style={{ width: '100%', padding: '16px', borderRadius: '12px', border: '1px solid #eee', resize: 'none', flex: 1 }}
+                            />
+                        </div>
+                    </div>
+                )}
+
+                {storeActiveTab === 'schedule' && (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(400px, 1fr) 2fr', gap: '32px' }}>
+                        {/* Business Hours Column */}
+                        <div className="glass-card" style={{ padding: '32px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--accent)' }}>
+                                    <Clock size={24} />
+                                    <h3 style={{ margin: 0 }}>Horarios Semanales</h3>
+                                </div>
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                {daysOfWeek.map(day => {
+                                    const schedule = editData.metadata?.businessHours?.[day.key] || {
+                                        morning: { open: '10:00', close: '14:00', isClosed: false },
+                                        afternoon: { open: '17:00', close: '20:30', isClosed: false }
+                                    };
+
+                                    return (
+                                        <div key={day.key} style={{ padding: '16px', borderRadius: '12px', backgroundColor: '#f9f9f9', border: '1px solid #eee' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                                <span style={{ fontSize: '13px', fontWeight: 800, textTransform: 'uppercase' }}>{day.label}</span>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    {isEditing && (
+                                                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}>
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={schedule.isClosed}
+                                                                onChange={e => {
+                                                                    const bh = editData.metadata?.businessHours || {};
+                                                                    setEditData({
+                                                                        ...editData,
+                                                                        metadata: {
+                                                                            ...editData.metadata,
+                                                                            businessHours: { ...bh, [day.key]: { ...schedule, isClosed: e.target.checked } }
+                                                                        }
+                                                                    });
+                                                                }}
+                                                            />
+                                                            CERRADO
+                                                        </label>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {!schedule.isClosed ? (
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px' }}>
+                                                        <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>MAÑANA:</span>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                            <input type="time" disabled={!isEditing} value={schedule.morning?.open} className="form-control-sm" onChange={e => {
+                                                                const bh = editData.metadata?.businessHours || {};
+                                                                const d = bh[day.key] || schedule;
+                                                                setEditData({ ...editData, metadata: { ...editData.metadata, businessHours: { ...bh, [day.key]: { ...d, morning: { ...d.morning!, open: e.target.value } } } } });
+                                                            }} />
+                                                            <span>-</span>
+                                                            <input type="time" disabled={!isEditing} value={schedule.morning?.close} className="form-control-sm" onChange={e => {
+                                                                const bh = editData.metadata?.businessHours || {};
+                                                                const d = bh[day.key] || schedule;
+                                                                setEditData({ ...editData, metadata: { ...editData.metadata, businessHours: { ...bh, [day.key]: { ...d, morning: { ...d.morning!, close: e.target.value } } } } });
+                                                            }} />
+                                                        </div>
+                                                    </div>
+                                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px' }}>
+                                                        <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>TARDE:</span>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                            <input type="time" disabled={!isEditing} value={schedule.afternoon?.open} className="form-control-sm" onChange={e => {
+                                                                const bh = editData.metadata?.businessHours || {};
+                                                                const d = bh[day.key] || schedule;
+                                                                setEditData({ ...editData, metadata: { ...editData.metadata, businessHours: { ...bh, [day.key]: { ...d, afternoon: { ...d.afternoon!, open: e.target.value } } } } });
+                                                            }} />
+                                                            <span>-</span>
+                                                            <input type="time" disabled={!isEditing} value={schedule.afternoon?.close} className="form-control-sm" onChange={e => {
+                                                                const bh = editData.metadata?.businessHours || {};
+                                                                const d = bh[day.key] || schedule;
+                                                                setEditData({ ...editData, metadata: { ...editData.metadata, businessHours: { ...bh, [day.key]: { ...d, afternoon: { ...d.afternoon!, close: e.target.value } } } } });
+                                                            }} />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div style={{ textAlign: 'center', padding: '10px', color: 'var(--error)', fontSize: '12px', fontWeight: 700 }}>ESTABLECIMIENTO CERRADO</div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Holidays Column */}
+                        <div className="glass-card" style={{ padding: '32px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--accent)' }}>
+                                    <Calendar size={24} />
+                                    <h3 style={{ margin: 0 }}>Días Festivos y Cierres Especiales</h3>
+                                </div>
+                                <button
+                                    className="btn btn-primary btn-sm"
+                                    onClick={() => setIsAddingSpecialDate(true)}
+                                    disabled={!isEditing}
+                                >
+                                    <Plus size={16} /> Añadir Fecha
+                                </button>
+                            </div>
+
+                            {isAddingSpecialDate && (
+                                <div className="glass-card" style={{ padding: '20px', backgroundColor: '#fcfcfc', border: '1px solid var(--primary)', marginBottom: '24px' }}>
+                                    <h4 style={{ margin: '0 0 16px 0', fontSize: '14px' }}>Nueva Fecha Especial</h4>
+                                    <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-end' }}>
+                                        <div style={{ flex: 1 }}>
+                                            <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)', marginBottom: '4px' }}>FECHA</label>
+                                            <input
+                                                type="date"
+                                                className="form-control"
+                                                value={newSpecialDate.date}
+                                                onChange={e => setNewSpecialDate({ ...newSpecialDate, date: e.target.value })}
+                                            />
+                                        </div>
+                                        <div style={{ flex: 2 }}>
+                                            <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)', marginBottom: '4px' }}>DESCRIPCIÓN</label>
+                                            <input
+                                                className="form-control"
+                                                placeholder="Ej: Festivo Local / Inventario"
+                                                value={newSpecialDate.label}
+                                                onChange={e => setNewSpecialDate({ ...newSpecialDate, label: e.target.value })}
+                                            />
+                                        </div>
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                            <button className="btn btn-primary" onClick={handleAddSpecialDate}><Save size={16} /></button>
+                                            <button className="btn" onClick={() => setIsAddingSpecialDate(false)}><X size={16} /></button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
+                                {(editData.metadata?.specialDates || []).length === 0 ? (
+                                    <div style={{ gridColumn: '1/-1', padding: '40px', textAlign: 'center', backgroundColor: '#f9f9f9', borderRadius: '12px', border: '1px dashed #ddd', color: 'var(--text-muted)' }}>
+                                        No hay fechas especiales registradas para este año.
+                                    </div>
+                                ) : (
+                                    (editData.metadata?.specialDates || []).sort((a, b) => a.date.localeCompare(b.date)).map(date => (
+                                        <div key={date.id} style={{
+                                            padding: '16px 20px',
+                                            borderRadius: '12px',
+                                            backgroundColor: 'white',
+                                            border: '1px solid #eee',
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center'
+                                        }}>
+                                            <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                                                <div style={{ textAlign: 'center', minWidth: '50px' }}>
+                                                    <div style={{ fontSize: '10px', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase' }}>
+                                                        {new Date(date.date).toLocaleDateString('es-ES', { month: 'short' })}
+                                                    </div>
+                                                    <div style={{ fontSize: '1.4rem', fontWeight: 800 }}>
+                                                        {new Date(date.date).getDate() + 1}
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <div style={{ fontWeight: 700, fontSize: '14px' }}>{date.label}</div>
+                                                    <div style={{ fontSize: '11px', color: 'var(--error)', fontWeight: 600 }}>CIERRE TOTAL</div>
+                                                </div>
+                                            </div>
+                                            {isEditing && (
+                                                <Trash2
+                                                    size={16}
+                                                    color="var(--error)"
+                                                    style={{ cursor: 'pointer', opacity: 0.6 }}
+                                                    onClick={() => handleRemoveSpecialDate(date.id)}
+                                                />
+                                            )}
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {storeActiveTab === 'showcases' && (
+                    <div style={{ display: 'grid', gridTemplateColumns: '300px 350px 1fr', gap: '32px', alignItems: 'start' }}>
+                        {/* 1. SELECTOR DE VITRINAS */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                             <div className="glass-card" style={{ padding: '24px' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
@@ -747,24 +791,143 @@ const LocationDetailView: React.FC<Props> = ({ location, onBack, onSave }) => {
                             <div className="glass-card" style={{ padding: 0, overflow: 'hidden' }}>
                                 <div style={{ padding: '20px 24px', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <h4 style={{ margin: 0 }}>Stock en Vitrina</h4>
-                                    <span style={{ fontSize: '11px', fontWeight: 800, backgroundColor: '#f4f4f4', padding: '4px 8px', borderRadius: '4px' }}>{currentStock.length} PIEZAS</span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                        {isEditing && !isAssigningPiece && (
+                                            <button
+                                                className="btn btn-primary btn-sm"
+                                                onClick={() => setIsAssigningPiece(true)}
+                                                style={{ fontSize: '11px', padding: '4px 12px' }}
+                                            >
+                                                <Plus size={14} /> Asignar Pieza
+                                            </button>
+                                        )}
+                                        <span style={{ fontSize: '11px', fontWeight: 800, backgroundColor: '#f4f4f4', padding: '4px 8px', borderRadius: '4px' }}>{currentStock.length} PIEZAS</span>
+                                    </div>
                                 </div>
-                                <div style={{ padding: '0' }}>
-                                    {currentStock.map((item, i) => (
-                                        <div key={item.id} style={{
-                                            padding: '16px 24px',
-                                            borderBottom: i === currentStock.length - 1 ? 'none' : '1px solid #f8f8f8',
-                                            display: 'flex',
-                                            justifyContent: 'space-between',
-                                            alignItems: 'center'
-                                        }}>
-                                            <div>
-                                                <span style={{ fontSize: '10px', fontWeight: 800, color: 'var(--primary)' }}>{item.id}</span>
-                                                <p style={{ margin: '2px 0 0 0', fontSize: '13px', fontWeight: 500 }}>{item.desc}</p>
-                                            </div>
-                                            <Settings size={14} color="#ccc" style={{ cursor: 'pointer' }} />
+                                {isAssigningPiece && (
+                                    <div style={{ padding: '20px 24px', backgroundColor: '#f9f9f9', borderBottom: '1px solid #eee' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                            <h5 style={{ margin: 0, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '1px' }}>Seleccionar Pieza Aprobada</h5>
+                                            <button className="btn-icon" onClick={() => setIsAssigningPiece(false)}><X size={14} /></button>
                                         </div>
-                                    ))}
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '250px', overflowY: 'auto', paddingRight: '12px' }}>
+                                            {inventory
+                                                .filter(item => !item.showcaseId)
+                                                .length === 0 ? (
+                                                <div style={{ padding: '16px', textAlign: 'center', fontSize: '12px', color: 'var(--text-muted)' }}>
+                                                    No hay piezas disponibles para asignar en esta ubicación.
+                                                </div>
+                                            ) : (
+                                                inventory
+                                                    .filter(item => !item.showcaseId)
+                                                    .map(item => (
+                                                        <div
+                                                            key={item.id}
+                                                            onClick={async () => {
+                                                                try {
+                                                                    // Si no está aprobado, lo aprobamos al asignar
+                                                                    const updates: any = { showcaseId: currentShowcase?.id };
+                                                                    if (!item.isApproved) {
+                                                                        updates.isApproved = true;
+                                                                    }
+                                                                    await InventoryService.update(item.id!, updates);
+                                                                    setIsAssigningPiece(false);
+                                                                    fetchInventory();
+                                                                } catch (error) {
+                                                                    console.error('Error assigning item:', error);
+                                                                }
+                                                            }}
+                                                            style={{
+                                                                padding: '10px 14px',
+                                                                backgroundColor: 'white',
+                                                                border: '1px solid #eee',
+                                                                borderRadius: '10px',
+                                                                cursor: 'pointer',
+                                                                display: 'flex',
+                                                                justifyContent: 'space-between',
+                                                                alignItems: 'center',
+                                                                transition: 'all 0.2s'
+                                                            }}
+                                                            onMouseEnter={e => {
+                                                                e.currentTarget.style.borderColor = 'var(--primary)';
+                                                                e.currentTarget.style.transform = 'translateX(4px)';
+                                                            }}
+                                                            onMouseLeave={e => {
+                                                                e.currentTarget.style.borderColor = '#eee';
+                                                                e.currentTarget.style.transform = 'translateX(0)';
+                                                            }}
+                                                        >
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                                        <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--primary)' }}>{item.itemCode}</span>
+                                                                        {!item.isApproved && (
+                                                                            <span style={{ fontSize: '8px', fontWeight: 800, backgroundColor: '#fdedec', color: '#e74c3c', padding: '1px 4px', borderRadius: '3px' }}>PENDIENTE</span>
+                                                                        )}
+                                                                    </div>
+                                                                    <span style={{ fontSize: '12px', color: 'var(--text-main)', marginTop: '2px' }}>{item.name || item.description}</span>
+                                                                </div>
+                                                            </div>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                                <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)' }}>{item.mainWeight}g</span>
+                                                                <div style={{ backgroundColor: 'rgba(241, 196, 15, 0.1)', color: 'var(--primary)', padding: '4px', borderRadius: '6px' }}>
+                                                                    <Plus size={14} />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ))
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                                <div style={{ padding: '0' }}>
+                                    {currentStock.length === 0 ? (
+                                        <div style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+                                            No hay piezas asignadas a esta vitrina.
+                                        </div>
+                                    ) : (
+                                        currentStock.map((item, i) => (
+                                            <div key={item.id} style={{
+                                                padding: '16px 24px',
+                                                borderBottom: i === currentStock.length - 1 ? 'none' : '1px solid #f8f8f8',
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                alignItems: 'center'
+                                            }}>
+                                                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                                    {item.images?.[0] && (
+                                                        <img
+                                                            src={item.images[0]}
+                                                            alt={item.id}
+                                                            style={{ width: '40px', height: '40px', borderRadius: '4px', objectFit: 'cover' }}
+                                                        />
+                                                    )}
+                                                    <div>
+                                                        <span style={{ fontSize: '10px', fontWeight: 800, color: 'var(--primary)' }}>{item.id}</span>
+                                                        <p style={{ margin: '2px 0 0 0', fontSize: '13px', fontWeight: 500 }}>{item.description}</p>
+                                                    </div>
+                                                </div>
+                                                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                                    {isEditing && (
+                                                        <button
+                                                            className="btn-icon"
+                                                            title="Quitar de vitrina"
+                                                            onClick={async () => {
+                                                                try {
+                                                                    await InventoryService.update(item.id!, { showcaseId: undefined });
+                                                                    fetchInventory();
+                                                                } catch (error) {
+                                                                    console.error('Error removing item from showcase:', error);
+                                                                }
+                                                            }}
+                                                        >
+                                                            <X size={14} color="var(--error)" />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
                                 </div>
                             </div>
 
@@ -818,7 +981,9 @@ const LocationDetailView: React.FC<Props> = ({ location, onBack, onSave }) => {
                             </div>
                         </div>
                     </div>
-                ) : (
+                )}
+
+                {storeActiveTab === 'general_stock' && (
                     /* STOCK GENERAL VIEW */
                     <div className="glass-card" style={{ padding: '32px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
@@ -874,7 +1039,36 @@ const LocationDetailView: React.FC<Props> = ({ location, onBack, onSave }) => {
                                             </h4>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}>
                                                 <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                                                    PVPR: <span style={{ fontWeight: 700, color: 'var(--text-main)' }}>{item.salePrice.toLocaleString()}€</span>
+                                                    PVPR: <span style={{ fontWeight: 700, color: 'var(--text-main)' }}>{item.salePrice?.toLocaleString() || '0'}€</span>
+                                                </div>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    {item.showcaseId && (
+                                                        <span style={{ fontSize: '9px', fontWeight: 800, backgroundColor: '#f0f0f0', padding: '2px 6px', borderRadius: '4px' }}>
+                                                            {editData.metadata?.showcases?.find(s => s.id === item.showcaseId)?.name || 'VITRINA'}
+                                                        </span>
+                                                    )}
+                                                    <div
+                                                        onClick={async () => {
+                                                            if (!isEditing) return;
+                                                            try {
+                                                                await InventoryService.update(item.id!, { isApproved: !item.isApproved });
+                                                                fetchInventory();
+                                                            } catch (error) {
+                                                                console.error('Error toggling approval:', error);
+                                                            }
+                                                        }}
+                                                        style={{
+                                                            fontSize: '10px',
+                                                            fontWeight: 800,
+                                                            backgroundColor: item.isApproved ? '#e8f6f3' : '#fdedec',
+                                                            color: item.isApproved ? '#1abc9c' : '#e74c3c',
+                                                            padding: '4px 10px',
+                                                            borderRadius: '20px',
+                                                            cursor: isEditing ? 'pointer' : 'default'
+                                                        }}
+                                                    >
+                                                        {item.isApproved ? 'APROBADO' : 'PENDIENTE'}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
