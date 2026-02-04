@@ -46,6 +46,22 @@ async function checkData() {
             }
         }
 
+        console.log("\n--- INVENTORY ITEMS ---");
+        const invSnap = await getDocs(collection(db, "inventory"));
+        if (invSnap.empty) {
+            console.log("No inventory items found.");
+        } else {
+            invSnap.forEach(doc => {
+                const item = doc.data();
+                const imagesCount = item.images ? item.images.length : 0;
+                const hasBase64 = imagesCount > 0 && item.images[0].startsWith('data:image');
+                console.log(`- [${item.itemCode}] ${item.name} | Images: ${imagesCount} | Base64: ${hasBase64 ? 'YES' : 'NO'}`);
+                if (hasBase64) {
+                    console.log(`  Preview: ${item.images[0].substring(0, 50)}...`);
+                }
+            });
+        }
+
     } catch (error) {
         console.error("Error checking data:", error);
     }

@@ -173,12 +173,17 @@ const InventoryManager: React.FC = () => {
         e.preventDefault();
         setIsScanning(true);
         try {
+            const finalImages = [...uploadedImages];
+
             if (editingItemId) {
-                await InventoryService.update(editingItemId, formData);
+                await InventoryService.update(editingItemId, {
+                    ...formData,
+                    images: finalImages
+                });
             } else {
                 await InventoryService.create({
                     ...formData,
-                    images: [],
+                    images: finalImages,
                     createdBy: 'admin'
                 });
             }
@@ -208,6 +213,8 @@ const InventoryManager: React.FC = () => {
         });
         setDynamicFields([]);
         setEditingItemId(null);
+        setUploadedImages([]);
+        setUploadedFiles([]);
     };
 
     const handleAttrChange = (attrId: string, value: any) => {
@@ -234,6 +241,13 @@ const InventoryManager: React.FC = () => {
             attributes: item.attributes || {}
         });
         setEditingItemId(item.id);
+        setUploadedImages(item.images || []);
+
+        // Convertir base64 de vuelta a File objetos para que uploadedFiles sea consistente
+        // Aunque para base64 almacenado directamente, podríamos simplemente usar uploadedImages
+        // Para simplificar, si ya son base64, las mantenemos en uploadedImages y el handleSubmit
+        // tendrá que distinguir entre lo que ya era base64 y lo que es un File nuevo.
+
         setSelectedDetailItem(null); // Close detail drawer
         setIsAddModalOpen(true);
     };
@@ -284,11 +298,13 @@ const InventoryManager: React.FC = () => {
         }
     };
 
-    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
             const files = Array.from(e.target.files);
-            const urls = files.map(file => URL.createObjectURL(file));
-            setUploadedImages(prev => [...prev, ...urls]);
+
+            // Convertir a base64 inmediatamente
+            const base64s = await Promise.all(files.map(file => fileToBase64(file)));
+            setUploadedImages(prev => [...prev, ...base64s]);
             setUploadedFiles(prev => [...prev, ...files]);
 
             // Trigger real AI Analysis on first upload
@@ -298,13 +314,15 @@ const InventoryManager: React.FC = () => {
         }
     };
 
-    const handleDrop = (e: React.DragEvent) => {
+    const handleDrop = async (e: React.DragEvent) => {
         e.preventDefault();
         setIsDragging(false);
         if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
             const files = Array.from(e.dataTransfer.files);
-            const urls = files.map(file => URL.createObjectURL(file));
-            setUploadedImages(prev => [...prev, ...urls]);
+
+            // Convertir a base64 inmediatamente
+            const base64s = await Promise.all(files.map(file => fileToBase64(file)));
+            setUploadedImages(prev => [...prev, ...base64s]);
             setUploadedFiles(prev => [...prev, ...files]);
 
             // Trigger real AI Analysis on drop
@@ -562,9 +580,9 @@ const InventoryManager: React.FC = () => {
                                 {selectedItems.includes(item.id) && <Check size={16} color="white" strokeWidth={3} />}
                             </div>
 
-                            <div style={{ height: '180px', backgroundColor: '#f9f9f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ccc', position: 'relative' }}>
+                            <div style={{ height: '180px', backgroundColor: '#f8f9fa', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ccc', position: 'relative' }}>
                                 {item.images && item.images.length > 0 ? (
-                                    <img src={item.images[0]} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    <img src={item.images[0]} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                                 ) : (
                                     <ImageIcon size={48} />
                                 )}
@@ -719,7 +737,11 @@ const InventoryManager: React.FC = () => {
                                                 <img src={src} style={{ width: '80px', height: '80px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #eee' }} />
                                                 <button
                                                     type="button"
-                                                    onClick={(e) => { e.stopPropagation(); setUploadedImages(prev => prev.filter((_, i) => i !== idx)); }}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setUploadedImages(prev => prev.filter((_, i) => i !== idx));
+                                                        setUploadedFiles(prev => prev.filter((_, i) => i !== idx));
+                                                    }}
                                                     style={{ position: 'absolute', top: '-6px', right: '-6px', width: '20px', height: '20px', borderRadius: '50%', backgroundColor: 'var(--error)', color: 'white', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '10px' }}
                                                 >
                                                     <X size={12} />
@@ -1011,9 +1033,9 @@ const InventoryManager: React.FC = () => {
                             <X size={20} />
                         </button>
 
-                        <div style={{ height: '300px', backgroundColor: '#f9f9f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ccc', position: 'relative', overflow: 'hidden' }}>
+                        <div style={{ height: '300px', backgroundColor: '#f8f9fa', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ccc', position: 'relative', overflow: 'hidden' }}>
                             {selectedDetailItem.images && selectedDetailItem.images.length > 0 ? (
-                                <img src={selectedDetailItem.images[activeDetailImageIdx] || selectedDetailItem.images[0]} alt={selectedDetailItem.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                <img src={selectedDetailItem.images[activeDetailImageIdx] || selectedDetailItem.images[0]} alt={selectedDetailItem.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                             ) : (
                                 <ImageIcon size={64} />
                             )}
@@ -1031,7 +1053,7 @@ const InventoryManager: React.FC = () => {
                                             cursor: 'pointer'
                                         }}
                                     >
-                                        <img src={img} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        <img src={img} style={{ width: '100%', height: '100%', objectFit: 'contain', backgroundColor: '#f8f9fa' }} />
                                     </div>
                                 ))}
                             </div>

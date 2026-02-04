@@ -110,5 +110,20 @@ export const InventoryService = {
         } catch (e) {
             return false;
         }
+    },
+
+    getByLocation: async (locationId: string): Promise<InventoryItem[]> => {
+        const q = query(
+            collection(db, COLLECTION_NAME),
+            where('locationId', '==', locationId),
+            where('isActive', '==', true)
+        );
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map(doc => ({
+            ...doc.data(),
+            id: doc.id,
+            createdAt: doc.data().createdAt?.toDate(),
+            updatedAt: doc.data().updatedAt?.toDate()
+        })) as InventoryItem[];
     }
 };
