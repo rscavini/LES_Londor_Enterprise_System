@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { Attribute, ClassificationMapping, Category, Subcategory } from "../models/schema";
 import { CategoryService } from "./CategoryService";
 import { SubcategoryService } from "./SubcategoryService";
 
@@ -16,7 +17,15 @@ export interface AIAnalysisResult {
 }
 
 export const AIService = {
-    analyzeImage: async (base64Image: string, mimeType: string = "image/jpeg"): Promise<AIAnalysisResult> => {
+    analyzeImage: async (
+        base64Image: string,
+        mimeType: string = "image/jpeg",
+        context: {
+            attributes: Attribute[],
+            mappings: ClassificationMapping[],
+            domainValuesMap: Record<string, any[]>
+        }
+    ): Promise<AIAnalysisResult> => {
         const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
         const categories = await CategoryService.getAll();
@@ -29,23 +38,35 @@ export const AIService = {
             Analiza esta imagen de una joya o reloj y devuelve un objeto JSON con la siguiente estructura:
             {
                 "name": "Nombre corto y comercial",
-                "description": "Descripción técnica detallada",
-                "categoryId": "ID de la categoría que mejor encaje",
-                "subcategoryId": "ID de la subcategoría que mejor encaje",
+                "description": "Formato: [Categoria] [Subcategoria] - [Atributo1: Valor] - [Atributo2: Valor]...",
+                "categoryId": "ID de la categoría detectada",
+                "subcategoryId": "ID de la subcategoría detectada",
                 "attributes": {
-                    "attr_id": "valor detectado"
+                    "ID_DEL_ATRIBUTO": "valor_detectado"
                 }
             }
 
-            CATEGORÍAS DISPONIBLES:
+            CONTEXTO DE CLASIFICACIÓN:
+            Categorías:
             ${categoriesContext}
 
-            SUBCATEGORÍAS DISPONIBLES:
+            Subcategorías:
             ${subcategoriesContext}
 
-            Responde ÚNICAMENTE con el objeto JSON, sin bloques de código ni texto adicional.
-            Si no estás seguro de la subcategoría, deja el campo vacío.
-            En los atributos, intenta identificar el material (oro, plata, etc) y colores.
+            ATRIBUTOS DISPONIBLES (Usa estos IDs en el objeto "attributes" y para construir la descripción):
+            ${context.attributes.map(a => `- ${a.name} (ID: ${a.id}, Tipo: ${a.dataType})`).join('\n')}
+
+            VALORES DISPONIBLES (Si el atributo es de tipo LIST, usa preferiblemente estos valores):
+            ${Object.entries(context.domainValuesMap).map(([id, values]) => {
+            const attr = context.attributes.find(a => a.id === id);
+            return `- ${attr?.name || id}: [${values.map(v => v.value).join(', ')}]`;
+        }).join('\n')}
+
+            INSTRUCCIONES CRÍTICAS:
+            1. Responde UNICAMENTE con el JSON.
+            2. La "description" DEBE empezar por la Categoría y Subcategoría, seguida de los atributos clave detectados.
+            3. Rellena el objeto "attributes" mapeando lo que veas a los IDs proporcionados.
+            4. Si detectas un material o propiedad que tiene un valor en la lista de "VALORES DISPONIBLES", úsalo exactamente.
         `;
 
         try {
@@ -62,7 +83,6 @@ export const AIService = {
             const responseText = result.response.text();
             console.log("Gemini Response Raw:", responseText);
 
-            // Limpiar posible markdown si Gemini lo incluye
             const jsonStr = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
             return JSON.parse(jsonStr) as AIAnalysisResult;
         } catch (error: any) {

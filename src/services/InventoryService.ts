@@ -47,15 +47,38 @@ export const InventoryService = {
 
     generateItemCode: async (): Promise<string> => {
         const year = new Date().getFullYear();
-        const q = query(collection(db, COLLECTION_NAME));
+        const prefix = `LD-${year}-`;
+
+        // Obtener todas las piezas que empiecen con el prefijo del año actual
+        const q = query(
+            collection(db, COLLECTION_NAME),
+            where('itemCode', '>=', prefix),
+            where('itemCode', '<=', prefix + '\uf8ff')
+        );
+
         const querySnapshot = await getDocs(q);
-        const count = querySnapshot.size + 1;
-        const sequence = count.toString().padStart(4, '0');
-        return `LD-${year}-${sequence}`;
+
+        let maxSeq = 0;
+        querySnapshot.forEach(doc => {
+            const code = doc.data().itemCode;
+            if (code && code.startsWith(prefix)) {
+                const seqStr = code.substring(prefix.length);
+                const seq = parseInt(seqStr, 10);
+                if (!isNaN(seq) && seq > maxSeq) {
+                    maxSeq = seq;
+                }
+            }
+        });
+
+        const nextSeq = maxSeq + 1;
+        return `${prefix}${nextSeq.toString().padStart(4, '0')}`;
     },
 
-    create: async (data: Omit<InventoryItem, 'id' | 'itemCode' | 'qrCode' | 'isActive' | 'createdAt' | 'updatedAt'>): Promise<InventoryItem> => {
-        const itemCode = await InventoryService.generateItemCode();
+    create: async (data: Omit<InventoryItem, 'id' | 'qrCode' | 'isActive' | 'createdAt' | 'updatedAt'>): Promise<InventoryItem> => {
+        let itemCode = data.itemCode;
+        if (!itemCode) {
+            itemCode = await InventoryService.generateItemCode();
+        }
 
         const docRef = await addDoc(collection(db, COLLECTION_NAME), {
             ...data,

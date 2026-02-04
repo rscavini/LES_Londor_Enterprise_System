@@ -82,6 +82,7 @@ const InventoryManager: React.FC = () => {
         salePrice: 0,
         mainWeight: 0,
         isApproved: false,
+        itemCode: '',
         attributes: {} as Record<string, any>
     });
 
@@ -215,6 +216,7 @@ const InventoryManager: React.FC = () => {
             salePrice: 0,
             mainWeight: 0,
             isApproved: false,
+            itemCode: '',
             attributes: {}
         });
         setDynamicFields([]);
@@ -245,6 +247,7 @@ const InventoryManager: React.FC = () => {
             salePrice: item.salePrice || 0,
             mainWeight: item.mainWeight || 0,
             isApproved: item.isApproved || false,
+            itemCode: item.itemCode || '',
             attributes: item.attributes || {}
         });
         setEditingItemId(item.id);
@@ -272,8 +275,12 @@ const InventoryManager: React.FC = () => {
         setIsScanning(true);
         try {
             const base64 = await fileToBase64(file);
-            // Pasar también el tipo MIME real del archivo
-            const result = await AIService.analyzeImage(base64, file.type);
+            // Pasar metadatos adicionales para un autocompletado preciso
+            const result = await AIService.analyzeImage(base64, file.type, {
+                attributes: allAttributes,
+                mappings: dynamicFields,
+                domainValuesMap: domainValuesMap
+            });
 
             // Intentar emparejar por ID o por Nombre
             const finalCategoryId = categories.find(c =>
@@ -349,7 +356,8 @@ const InventoryManager: React.FC = () => {
 
     const filteredItems = items.filter(item => {
         const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            item.itemCode.toLowerCase().includes(searchTerm.toLowerCase());
+            item.itemCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            item.description.toLowerCase().includes(searchTerm.toLowerCase());
 
         const matchesCategory = !filters.categoryId || item.categoryId === filters.categoryId;
         const matchesLocation = !filters.locationId || item.locationId === filters.locationId;
@@ -896,14 +904,27 @@ const InventoryManager: React.FC = () => {
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                                     <div>
                                         <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600 }}>Identificación Básica</label>
-                                        <input
-                                            required
-                                            className="form-control"
-                                            value={formData.name}
-                                            onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                            placeholder="Nombre Corto..."
-                                            style={{ width: '100%', marginBottom: '12px' }}
-                                        />
+                                        <div style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
+                                            <div style={{ flex: 1 }}>
+                                                <input
+                                                    required
+                                                    className="form-control"
+                                                    value={formData.name}
+                                                    onChange={e => setFormData({ ...formData, name: e.target.value })}
+                                                    placeholder="Nombre Corto..."
+                                                    style={{ width: '100%' }}
+                                                />
+                                            </div>
+                                            <div style={{ width: '180px' }}>
+                                                <input
+                                                    className="form-control"
+                                                    value={formData.itemCode}
+                                                    onChange={e => setFormData({ ...formData, itemCode: e.target.value })}
+                                                    placeholder="REF (Auto si vacío)"
+                                                    style={{ width: '100%', fontWeight: 700, color: 'var(--primary)' }}
+                                                />
+                                            </div>
+                                        </div>
                                         <textarea
                                             required
                                             rows={3}
