@@ -47,14 +47,29 @@ export const AttributeService = {
         }
 
         const id = `attr_${Date.now()}`;
-        const newAttr = { ...attr, isActive: true, createdAt: serverTimestamp() };
+        const newAttr: any = { ...attr, isActive: true, createdAt: serverTimestamp() };
+
+        // Limpiar campos undefined para Firestore
+        if (newAttr.domainId === undefined) {
+            delete newAttr.domainId;
+        }
+
         await setDoc(doc(db, COLLECTION_NAME, id), newAttr);
         return { ...newAttr, id, createdAt: new Date() } as Attribute;
     },
 
     update: async (id: string, updates: Partial<Attribute>): Promise<Attribute | undefined> => {
         const docRef = doc(db, COLLECTION_NAME, id);
-        await updateDoc(docRef, updates);
+
+        // Limpiar campos undefined
+        const cleanUpdates = { ...updates } as any;
+        Object.keys(cleanUpdates).forEach(key => {
+            if (cleanUpdates[key] === undefined) {
+                delete cleanUpdates[key];
+            }
+        });
+
+        await updateDoc(docRef, cleanUpdates);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
             return {

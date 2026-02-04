@@ -83,6 +83,7 @@ const InventoryManager: React.FC = () => {
         mainWeight: 0,
         isApproved: false,
         itemCode: '',
+        comments: '',
         attributes: {} as Record<string, any>
     });
 
@@ -217,6 +218,7 @@ const InventoryManager: React.FC = () => {
             mainWeight: 0,
             isApproved: false,
             itemCode: '',
+            comments: '',
             attributes: {}
         });
         setDynamicFields([]);
@@ -248,6 +250,7 @@ const InventoryManager: React.FC = () => {
             mainWeight: item.mainWeight || 0,
             isApproved: item.isApproved || false,
             itemCode: item.itemCode || '',
+            comments: item.comments || '',
             attributes: item.attributes || {}
         });
         setEditingItemId(item.id);
@@ -547,12 +550,14 @@ const InventoryManager: React.FC = () => {
                                 <td className="number">{item.mainWeight}g</td>
                                 <td className="number" style={{ fontWeight: 600 }}>{item.salePrice?.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</td>
                                 <td className="badge-cell">
-                                    <span className={`excel-badge ${item.isApproved ? 'excel-badge-success' : 'excel-badge-warning'}`}>
-                                        {item.isApproved ? 'SÍ' : 'NO'}
+                                    <span className={`excel-badge ${item.statusId === 'stat_available' ? 'excel-badge-success' : 'excel-badge-warning'}`}>
+                                        {item.statusId === 'stat_available' ? 'SÍ' : (item.statusId === 'stat_sold' ? 'VEND' : 'NO')}
                                     </span>
                                 </td>
                                 <td style={{ color: 'var(--text-muted)', fontSize: '11px' }}>
-                                    {getCategoryName(item.categoryId)} - {getSubcategoryName(item.subcategoryId)}
+                                    {item.comments || (
+                                        <span style={{ opacity: 0.5 }}>-</span>
+                                    )}
                                 </td>
                             </tr>
                         ))}
@@ -566,7 +571,10 @@ const InventoryManager: React.FC = () => {
         <div className="container">
             <header style={{ marginBottom: '40px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                 <div>
-                    <h1 style={{ fontSize: '2.5rem', marginBottom: '8px' }}>Inventario de Activos</h1>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <h1 style={{ fontSize: '2.5rem', marginBottom: '8px' }}>Inventario de Activos</h1>
+                        <span style={{ fontSize: '10px', backgroundColor: 'var(--accent)', color: 'white', padding: '2px 8px', borderRadius: '4px', fontWeight: 800, marginTop: '-15px' }}>v1.2.2</span>
+                    </div>
                     <p style={{ color: 'var(--text-muted)' }}>Gestión centralizada de existencias y trazabilidad</p>
                 </div>
                 <div style={{ display: 'flex', gap: '12px' }}>
@@ -931,7 +939,14 @@ const InventoryManager: React.FC = () => {
                                             value={formData.description}
                                             onChange={e => setFormData({ ...formData, description: e.target.value })}
                                             placeholder="Descripción técnica..."
-                                            style={{ width: '100%', borderRadius: '8px', border: '1px solid #ddd', padding: '12px' }}
+                                            style={{ width: '100%', borderRadius: '8px', border: '1px solid #ddd', padding: '12px', marginBottom: '12px' }}
+                                        />
+                                        <textarea
+                                            rows={2}
+                                            value={formData.comments}
+                                            onChange={e => setFormData({ ...formData, comments: e.target.value })}
+                                            placeholder="Comentarios y notas internas..."
+                                            style={{ width: '100%', borderRadius: '8px', border: '1px solid #ddd', padding: '12px', fontSize: '13px', backgroundColor: '#fffcf5' }}
                                         />
                                     </div>
 
@@ -1270,6 +1285,15 @@ const InventoryManager: React.FC = () => {
                             <div style={{ marginBottom: '32px' }}>
                                 <h4 style={{ fontSize: '14px', marginBottom: '12px', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Descripción Técnica</h4>
                                 <p style={{ fontSize: '15px', lineHeight: '1.6', color: '#444' }}>{selectedDetailItem.description}</p>
+                            </div>
+
+                            <div style={{ marginBottom: '32px', padding: '16px', backgroundColor: '#fdf7e6', borderRadius: '8px', borderLeft: '4px solid #f39c12' }}>
+                                <h4 style={{ fontSize: '12px', marginBottom: '8px', textTransform: 'uppercase', color: '#a0522d', fontWeight: 700 }}>Comentarios Internos</h4>
+                                {selectedDetailItem.comments ? (
+                                    <p style={{ fontSize: '13px', color: '#5d4037', margin: 0 }}>{selectedDetailItem.comments}</p>
+                                ) : (
+                                    <p style={{ fontSize: '13px', color: '#999', margin: 0, fontStyle: 'italic' }}>Sin comentarios adicionales.</p>
+                                )}
                             </div>
 
                             {Object.keys(selectedDetailItem.attributes || {}).length > 0 && (

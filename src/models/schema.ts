@@ -184,6 +184,9 @@ export interface InventoryItem {
     // Multimedia
     images: string[];
 
+    // Notas Adicionales
+    comments?: string;
+
     // Auditoría
     isActive: boolean;
     createdAt: Date;
