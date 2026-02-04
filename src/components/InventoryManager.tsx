@@ -24,7 +24,10 @@ import {
     ImagePlus,
     Copy,
     RotateCcw,
-    Calculator
+    Calculator,
+    Table,
+    ChevronUp,
+    ChevronDown
 } from 'lucide-react';
 import { InventoryService } from '../services/InventoryService';
 import { CategoryService } from '../services/CategoryService';
@@ -52,10 +55,11 @@ const InventoryManager: React.FC = () => {
     // UI State
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [editingItemId, setEditingItemId] = useState<string | null>(null);
-    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+    const [viewMode, setViewMode] = useState<'grid' | 'list' | 'excel'>('grid');
     const [searchTerm, setSearchTerm] = useState('');
     const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
     const [selectedItems, setSelectedItems] = useState<string[]>([]);
+    const [sortConfig, setSortConfig] = useState<{ field: string; direction: 'asc' | 'desc' } | null>(null);
 
     // Filters state
     const [filters, setFilters] = useState({
@@ -356,6 +360,21 @@ const InventoryManager: React.FC = () => {
         const matchesMaxPrice = !filters.maxPrice || price <= parseFloat(filters.maxPrice);
 
         return matchesSearch && matchesCategory && matchesLocation && matchesStatus && matchesMinPrice && matchesMaxPrice;
+    }).sort((a, b) => {
+        if (!sortConfig) return 0;
+        const { field, direction } = sortConfig;
+        let aVal: any = (a as any)[field];
+        let bVal: any = (b as any)[field];
+
+        // Manejo especial para fechas y números
+        if (field === 'createdAt') {
+            aVal = new Date(aVal).getTime();
+            bVal = new Date(bVal).getTime();
+        }
+
+        if (aVal < bVal) return direction === 'asc' ? -1 : 1;
+        if (aVal > bVal) return direction === 'asc' ? 1 : -1;
+        return 0;
     });
 
     const toggleSelectAll = () => {
@@ -370,6 +389,15 @@ const InventoryManager: React.FC = () => {
         setSelectedItems(prev =>
             prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
         );
+    };
+
+    const handleSort = (field: string) => {
+        setSortConfig(prev => {
+            if (prev?.field === field) {
+                return { field, direction: prev.direction === 'asc' ? 'desc' : 'asc' };
+            }
+            return { field, direction: 'asc' };
+        });
     };
 
     const getCategoryName = (id: string) => categories.find(c => c.id === id)?.name || 'N/A';
@@ -432,6 +460,100 @@ const InventoryManager: React.FC = () => {
         );
     };
 
+    const renderExcelView = () => {
+        const renderSortIcon = (field: string) => {
+            if (sortConfig?.field !== field) return <ArrowUpDown size={12} className="sort-icon" />;
+            return sortConfig.direction === 'asc' ? <ChevronUp size={12} className="sort-icon" /> : <ChevronDown size={12} className="sort-icon" />;
+        };
+
+        return (
+            <div className="excel-container">
+                <table className="excel-table">
+                    <thead>
+                        <tr>
+                            <th style={{ width: '40px' }} className="badge-cell">
+                                <input
+                                    type="checkbox"
+                                    checked={selectedItems.length === filteredItems.length && filteredItems.length > 0}
+                                    onChange={toggleSelectAll}
+                                />
+                            </th>
+                            <th style={{ width: '50px' }} className="sortable" onClick={() => handleSort('can')}>
+                                CAN {renderSortIcon('can')}
+                            </th>
+                            <th style={{ width: '100px' }} className={`sortable ${sortConfig?.field === 'createdAt' ? 'active-sort' : ''}`} onClick={() => handleSort('createdAt')}>
+                                FECHA {renderSortIcon('createdAt')}
+                            </th>
+                            <th style={{ width: '60px' }}>IMAGEN</th>
+                            <th style={{ width: '120px' }} className={`sortable ${sortConfig?.field === 'itemCode' ? 'active-sort' : ''}`} onClick={() => handleSort('itemCode')}>
+                                REF {renderSortIcon('itemCode')}
+                            </th>
+                            <th className="sortable" onClick={() => handleSort('description')}>
+                                DESCRIPCIÓN {renderSortIcon('description')}
+                            </th>
+                            <th style={{ width: '100px' }} className={`sortable ${sortConfig?.field === 'purchasePrice' ? 'active-sort' : ''}`} onClick={() => handleSort('purchasePrice')}>
+                                COSTE {renderSortIcon('purchasePrice')}
+                            </th>
+                            <th style={{ width: '80px' }} className={`sortable ${sortConfig?.field === 'mainWeight' ? 'active-sort' : ''}`} onClick={() => handleSort('mainWeight')}>
+                                PESO {renderSortIcon('mainWeight')}
+                            </th>
+                            <th style={{ width: '100px' }} className={`sortable ${sortConfig?.field === 'salePrice' ? 'active-sort' : ''}`} onClick={() => handleSort('salePrice')}>
+                                P. VENTA {renderSortIcon('salePrice')}
+                            </th>
+                            <th style={{ width: '110px' }}>DISPONIBLE</th>
+                            <th>COMENTARIOS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {filteredItems.map(item => (
+                            <tr
+                                key={item.id}
+                                className={selectedItems.includes(item.id) ? 'selected' : ''}
+                                onClick={() => {
+                                    setSelectedDetailItem(item);
+                                    setActiveDetailImageIdx(0);
+                                }}
+                                style={{ cursor: 'pointer' }}
+                            >
+                                <td className="badge-cell" onClick={(e) => { e.stopPropagation(); toggleSelectItem(item.id); }}>
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedItems.includes(item.id)}
+                                        readOnly
+                                    />
+                                </td>
+                                <td className="number">1</td>
+                                <td className="date">{new Date(item.createdAt).toLocaleDateString()}</td>
+                                <td className="badge-cell">
+                                    <div className="excel-thumbnail-container">
+                                        {item.images && item.images.length > 0 ? (
+                                            <img src={item.images[0]} alt={item.name} className="excel-thumbnail" />
+                                        ) : (
+                                            <ImageIcon size={16} color="#ccc" />
+                                        )}
+                                    </div>
+                                </td>
+                                <td style={{ fontWeight: 600, color: 'var(--primary)' }}>{item.itemCode}</td>
+                                <td title={item.description}>{item.description}</td>
+                                <td className="number">{item.purchasePrice?.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</td>
+                                <td className="number">{item.mainWeight}g</td>
+                                <td className="number" style={{ fontWeight: 600 }}>{item.salePrice?.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</td>
+                                <td className="badge-cell">
+                                    <span className={`excel-badge ${item.isApproved ? 'excel-badge-success' : 'excel-badge-warning'}`}>
+                                        {item.isApproved ? 'SÍ' : 'NO'}
+                                    </span>
+                                </td>
+                                <td style={{ color: 'var(--text-muted)', fontSize: '11px' }}>
+                                    {getCategoryName(item.categoryId)} - {getSubcategoryName(item.subcategoryId)}
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        );
+    };
+
     return (
         <div className="container">
             <header style={{ marginBottom: '40px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
@@ -464,6 +586,18 @@ const InventoryManager: React.FC = () => {
                                 cursor: 'pointer'
                             }}>
                             <List size={18} />
+                        </button>
+                        <button
+                            onClick={() => setViewMode('excel')}
+                            style={{
+                                padding: '8px',
+                                border: 'none',
+                                background: viewMode === 'excel' ? 'var(--primary)' : 'transparent',
+                                color: viewMode === 'excel' ? 'white' : 'var(--text-muted)',
+                                borderRadius: '6px',
+                                cursor: 'pointer'
+                            }}>
+                            <Table size={18} />
                         </button>
                     </div>
                     <button className="btn btn-primary" onClick={() => setIsAddModalOpen(true)}>
@@ -543,6 +677,8 @@ const InventoryManager: React.FC = () => {
                     <h3>No hay piezas registradas</h3>
                     <p style={{ color: 'var(--text-muted)' }}>Empieza dando de alta tu primera joya en el sistema.</p>
                 </div>
+            ) : viewMode === 'excel' ? (
+                renderExcelView()
             ) : (
                 <div style={{
                     display: viewMode === 'grid' ? 'grid' : 'block',
