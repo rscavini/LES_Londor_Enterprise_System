@@ -81,6 +81,7 @@ const InventoryManager: React.FC = () => {
     });
 
     const [selectedDetailItem, setSelectedDetailItem] = useState<InventoryItem | null>(null);
+    const [activeDetailImageIdx, setActiveDetailImageIdx] = useState(0);
     const [isScanning, setIsScanning] = useState(false);
     const [uploadedImages, setUploadedImages] = useState<string[]>([]);
     const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
@@ -351,6 +352,7 @@ const InventoryManager: React.FC = () => {
     };
 
     const getCategoryName = (id: string) => categories.find(c => c.id === id)?.name || 'N/A';
+    const getSubcategoryName = (id: string) => subcategories.find(s => s.id === id)?.name || 'N/A';
     const getLocationName = (id: string) => locations.find(l => l.id === id)?.name || 'N/A';
     const getStatusName = (id: string) => statuses.find(s => s.id === id)?.name || 'N/A';
 
@@ -561,7 +563,11 @@ const InventoryManager: React.FC = () => {
                             </div>
 
                             <div style={{ height: '180px', backgroundColor: '#f9f9f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ccc', position: 'relative' }}>
-                                <ImageIcon size={48} />
+                                {item.images && item.images.length > 0 ? (
+                                    <img src={item.images[0]} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                ) : (
+                                    <ImageIcon size={48} />
+                                )}
                                 <div style={{ position: 'absolute', top: '12px', left: '12px' }}>
                                     <span style={{
                                         padding: '4px 10px',
@@ -590,7 +596,10 @@ const InventoryManager: React.FC = () => {
                                     </div>
                                 )}
                             </div>
-                            <div style={{ padding: '20px' }} onClick={() => setSelectedDetailItem(item)}>
+                            <div style={{ padding: '20px' }} onClick={() => {
+                                setSelectedDetailItem(item);
+                                setActiveDetailImageIdx(0);
+                            }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                                     <span style={{ fontSize: '11px', color: 'var(--accent)', fontWeight: 700 }}>{getCategoryName(item.categoryId)}</span>
                                     <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{getStatusName(item.statusId)}</span>
@@ -1002,15 +1011,37 @@ const InventoryManager: React.FC = () => {
                             <X size={20} />
                         </button>
 
-                        <div style={{ height: '300px', backgroundColor: '#f9f9f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ccc' }}>
-                            <ImageIcon size={64} />
+                        <div style={{ height: '300px', backgroundColor: '#f9f9f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ccc', position: 'relative', overflow: 'hidden' }}>
+                            {selectedDetailItem.images && selectedDetailItem.images.length > 0 ? (
+                                <img src={selectedDetailItem.images[activeDetailImageIdx] || selectedDetailItem.images[0]} alt={selectedDetailItem.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            ) : (
+                                <ImageIcon size={64} />
+                            )}
                         </div>
+
+                        {selectedDetailItem.images && selectedDetailItem.images.length > 1 && (
+                            <div style={{ display: 'flex', gap: '8px', padding: '12px 40px', overflowX: 'auto', borderBottom: '1px solid #eee' }}>
+                                {selectedDetailItem.images.map((img, idx) => (
+                                    <div
+                                        key={idx}
+                                        onClick={() => setActiveDetailImageIdx(idx)}
+                                        style={{
+                                            flexShrink: 0, width: '60px', height: '60px', borderRadius: '4px', overflow: 'hidden',
+                                            border: idx === activeDetailImageIdx ? '2px solid var(--accent)' : '1px solid #ddd',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        <img src={img} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    </div>
+                                ))}
+                            </div>
+                        )}
 
                         <div style={{ padding: '40px', flex: 1, overflowY: 'auto' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
                                 <div>
                                     <span style={{ fontSize: '12px', color: 'var(--accent)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>
-                                        {getCategoryName(selectedDetailItem.categoryId)}
+                                        {getCategoryName(selectedDetailItem.categoryId)} / {getSubcategoryName(selectedDetailItem.subcategoryId)}
                                     </span>
                                     <h2 style={{ fontSize: '24px', margin: '4px 0 8px 0' }}>{selectedDetailItem.name}</h2>
                                     <code style={{ fontSize: '12px', backgroundColor: '#f1f1f1', padding: '2px 8px', borderRadius: '4px' }}>{selectedDetailItem.itemCode}</code>
@@ -1036,6 +1067,20 @@ const InventoryManager: React.FC = () => {
                                     <div>
                                         <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>ESTADO</div>
                                         <div style={{ fontSize: '13px', fontWeight: 600 }}>{getStatusName(selectedDetailItem.statusId)}</div>
+                                    </div>
+                                </div>
+                                <div className="glass-card" style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px', border: '1px solid #eee' }}>
+                                    <Calculator size={18} color="var(--text-muted)" />
+                                    <div>
+                                        <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>PESO</div>
+                                        <div style={{ fontSize: '13px', fontWeight: 600 }}>{selectedDetailItem.mainWeight || 0} gr</div>
+                                    </div>
+                                </div>
+                                <div className="glass-card" style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px', border: '1px solid #eee' }}>
+                                    <div style={{ fontSize: '18px', fontWeight: 800, color: '#e67e22' }}>€</div>
+                                    <div>
+                                        <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>COSTE</div>
+                                        <div style={{ fontSize: '13px', fontWeight: 600 }}>{selectedDetailItem.purchasePrice?.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</div>
                                     </div>
                                 </div>
                             </div>
