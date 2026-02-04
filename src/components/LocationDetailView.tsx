@@ -825,7 +825,6 @@ const LocationDetailView: React.FC<Props> = ({ location, onBack, onSave }) => {
                                                             key={item.id}
                                                             onClick={async () => {
                                                                 try {
-                                                                    // Si no está aprobado, lo aprobamos al asignar
                                                                     const updates: any = { showcaseId: currentShowcase?.id };
                                                                     if (!item.isApproved) {
                                                                         updates.isApproved = true;
@@ -857,7 +856,25 @@ const LocationDetailView: React.FC<Props> = ({ location, onBack, onSave }) => {
                                                                 e.currentTarget.style.transform = 'translateX(0)';
                                                             }}
                                                         >
-                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                                {/* Thumbnail Mini */}
+                                                                <div style={{
+                                                                    width: '40px',
+                                                                    height: '40px',
+                                                                    borderRadius: '8px',
+                                                                    backgroundColor: '#f8f9fa',
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    justifyContent: 'center',
+                                                                    overflow: 'hidden',
+                                                                    border: '1px solid #eee'
+                                                                }}>
+                                                                    {item.images?.[0] ? (
+                                                                        <img src={item.images[0]} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                                    ) : (
+                                                                        <ImageIcon size={16} color="#ccc" />
+                                                                    )}
+                                                                </div>
                                                                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                                         <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--primary)' }}>{item.itemCode}</span>
@@ -865,11 +882,11 @@ const LocationDetailView: React.FC<Props> = ({ location, onBack, onSave }) => {
                                                                             <span style={{ fontSize: '8px', fontWeight: 800, backgroundColor: '#fdedec', color: '#e74c3c', padding: '1px 4px', borderRadius: '3px' }}>PENDIENTE</span>
                                                                         )}
                                                                     </div>
-                                                                    <span style={{ fontSize: '12px', color: 'var(--text-main)', marginTop: '2px' }}>{item.name || item.description}</span>
+                                                                    <span style={{ fontSize: '12px', color: 'var(--text-main)', marginTop: '2px', fontWeight: 500 }}>{item.name || item.description}</span>
                                                                 </div>
                                                             </div>
                                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                                <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)' }}>{item.mainWeight}g</span>
+                                                                {item.mainWeight && <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)' }}>{item.mainWeight}g</span>}
                                                                 <div style={{ backgroundColor: 'rgba(241, 196, 15, 0.1)', color: 'var(--primary)', padding: '4px', borderRadius: '6px' }}>
                                                                     <Plus size={14} />
                                                                 </div>
@@ -894,17 +911,28 @@ const LocationDetailView: React.FC<Props> = ({ location, onBack, onSave }) => {
                                                 justifyContent: 'space-between',
                                                 alignItems: 'center'
                                             }}>
-                                                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                                                    {item.images?.[0] && (
-                                                        <img
-                                                            src={item.images[0]}
-                                                            alt={item.id}
-                                                            style={{ width: '40px', height: '40px', borderRadius: '4px', objectFit: 'cover' }}
-                                                        />
-                                                    )}
+                                                <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                                                    {/* Thumbnail Mini */}
+                                                    <div style={{
+                                                        width: '44px',
+                                                        height: '44px',
+                                                        borderRadius: '8px',
+                                                        backgroundColor: '#f8f9fa',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        overflow: 'hidden',
+                                                        border: '1px solid #eee'
+                                                    }}>
+                                                        {item.images?.[0] ? (
+                                                            <img src={item.images[0]} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                        ) : (
+                                                            <ImageIcon size={18} color="#ccc" />
+                                                        )}
+                                                    </div>
                                                     <div>
-                                                        <span style={{ fontSize: '10px', fontWeight: 800, color: 'var(--primary)' }}>{item.id}</span>
-                                                        <p style={{ margin: '2px 0 0 0', fontSize: '13px', fontWeight: 500 }}>{item.description}</p>
+                                                        <span style={{ fontSize: '10px', fontWeight: 800, color: 'var(--primary)' }}>{item.itemCode || item.id}</span>
+                                                        <p style={{ margin: '2px 0 0 0', fontSize: '13px', fontWeight: 600, color: 'var(--text-main)' }}>{item.name || item.description}</p>
                                                     </div>
                                                 </div>
                                                 <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
