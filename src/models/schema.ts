@@ -207,3 +207,55 @@ export interface Location {
     createdAt: Date;
     createdBy: string;
 }
+
+// Clientes (Fase 1 - Operaciones)
+export interface Customer {
+    id: string;
+    firstName: string;
+    lastName: string;
+    dni?: string;        // Identificación oficial
+    phone: string;
+    email?: string;
+    address?: string;
+    tags?: string[];     // VIP, Recurrente, etc.
+    isActive: boolean;
+    createdAt: Date;
+    createdBy: string;
+}
+
+// Apartados / Reservas (Anexo P9)
+export type ReservationStatus = 'ACTIVE' | 'EXPIRED' | 'RESOLVED' | 'CANCELLED';
+
+export interface Reservation {
+    id: string;
+    itemId: string;      // FK a InventoryItem
+    customerId: string;  // FK a Customer
+    locationId: string;  // Tienda donde se hace el apartado
+    startDate: Date;
+    expiryDate: Date;
+    status: ReservationStatus;
+    depositAmount?: number; // Importe dejado a cuenta
+    notes?: string;
+    resolutionNote?: string; // Motivo de liberación/venta/cancelación
+    resolvedAt?: Date;
+    resolvedBy?: string;
+    createdAt: Date;
+    createdBy: string;
+}
+
+// Órdenes de Taller (Anexo P10)
+export type WorkshopOrderStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+
+export interface WorkshopOrder {
+    id: string;
+    itemId: string;      // FK a InventoryItem
+    workshopId: string;  // FK a Location (tipo WORKSHOP)
+    orderNumber: string; // Código legible
+    description: string; // Qué se le hace a la pieza
+    status: WorkshopOrderStatus;
+    estimatedDeliveryDate?: Date;
+    actualDeliveryDate?: Date;
+    cost?: number;
+    createdAt: Date;
+    createdBy: string;
+}
