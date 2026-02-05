@@ -1507,6 +1507,17 @@ const InventoryManager: React.FC = () => {
                                             </select>
                                         </div>
                                     </div>
+                                    <div style={{ marginTop: '12px' }}>
+                                        <select
+                                            className="form-control"
+                                            value={formData.supplierId}
+                                            onChange={e => setFormData({ ...formData, supplierId: e.target.value })}
+                                            style={{ width: '100%' }}
+                                        >
+                                            <option value="">Proveedor (Opcional)...</option>
+                                            {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                        </select>
+                                    </div>
 
                                     <div>
                                         <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600 }}>Pesos y Medidas</label>
@@ -2011,7 +2022,7 @@ const InventoryManager: React.FC = () => {
                                 </div>
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '32px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '32px' }}>
                                 <div className="glass-card" style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px', border: '1px solid #eee' }}>
                                     <MapPin size={18} color="var(--text-muted)" />
                                     <div>
@@ -2027,13 +2038,22 @@ const InventoryManager: React.FC = () => {
                                     </div>
                                 </div>
                                 <div className="glass-card" style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px', border: '1px solid #eee' }}>
+                                    <Package size={18} color="var(--text-muted)" />
+                                    <div>
+                                        <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>PROVEEDOR</div>
+                                        <div style={{ fontSize: '13px', fontWeight: 600 }}>
+                                            {suppliers.find(s => s.id === selectedDetailItem.supplierId)?.name || 'N/A'}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="glass-card" style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px', border: '1px solid #eee' }}>
                                     <Calculator size={18} color="var(--text-muted)" />
                                     <div>
                                         <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>PESO</div>
                                         <div style={{ fontSize: '13px', fontWeight: 600 }}>{selectedDetailItem.mainWeight || 0} gr</div>
                                     </div>
                                 </div>
-                                <div className="glass-card" style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px', border: '1px solid #eee' }}>
+                                <div className="glass-card" style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px', border: '1px solid #eee', gridColumn: 'span 2' }}>
                                     <div style={{ fontSize: '18px', fontWeight: 800, color: '#e67e22' }}>€</div>
                                     <div>
                                         <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>COSTE</div>
