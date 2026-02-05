@@ -370,13 +370,40 @@ const InventoryManager: React.FC = () => {
     };
 
     const handleAttrChange = (attrId: string, value: any) => {
-        setFormData(prev => ({
-            ...prev,
-            attributes: {
-                ...prev.attributes,
-                [attrId]: value
+        setFormData(prev => {
+            const newAttrs = { ...prev.attributes, [attrId]: value };
+
+            // Resetear campos dependientes de Piedras
+            if (attrId === 'attr_tip_pie') {
+                if (value === 'Sin Piedra') {
+                    newAttrs['attr_col_pie'] = '';
+                    newAttrs['attr_for_pie'] = '';
+                    newAttrs['attr_engaste'] = '';
+                    newAttrs['attr_pureza'] = '';
+                    newAttrs['attr_col_dia'] = '';
+                    newAttrs['attr_cort_dia'] = '';
+                    newAttrs['attr_pes_gem'] = '';
+                } else if (value !== 'Diamante') {
+                    // Si no es diamante, limpiar los campos técnicos de certificación
+                    newAttrs['attr_col_dia'] = '';
+                    newAttrs['attr_cort_dia'] = '';
+                    newAttrs['attr_pes_gem'] = '';
+                } else if (value === 'Diamante') {
+                    // Si es diamante, limpiar el color comercial descriptivo
+                    newAttrs['attr_col_pie'] = '';
+                }
             }
-        }));
+
+            // Resetear Texto de Grabado
+            if (attrId === 'attr_gra_per' && !value) {
+                newAttrs['attr_tex_gra'] = '';
+            }
+
+            return {
+                ...prev,
+                attributes: newAttrs
+            };
+        });
     };
 
     const handleEdit = (item: InventoryItem) => {
@@ -641,54 +668,196 @@ const InventoryManager: React.FC = () => {
         const attributeItem = allAttributes.find(a => a.id === mapping.attributeId);
         if (!attributeItem) return null;
 
-        return (
-            <div key={attributeItem.id} style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600 }}>
-                    {attributeItem.name} {mapping.isMandatory && <span style={{ color: 'var(--error)' }}>*</span>}
-                </label>
+        // LÓGICA DE DEPENDENCIAS
 
-                {attributeItem.dataType === 'LIST' ? (
-                    <select
-                        required={mapping.isMandatory}
-                        value={formData.attributes[attributeItem.id] || ''}
-                        onChange={e => handleAttrChange(attributeItem.id, e.target.value)}
-                        className="form-control"
-                        style={{ width: '100%' }}
-                    >
-                        <option value="">Seleccione...</option>
-                        {(domainValuesMap[attributeItem.id] || []).map((v: any) => (
-                            <option key={v.id} value={v.value}>{v.value}</option>
-                        ))}
-                    </select>
-                ) : attributeItem.dataType === 'NUMBER' ? (
-                    <input
-                        type="number"
-                        required={mapping.isMandatory}
-                        className="form-control"
-                        style={{ width: '100%' }}
-                        value={formData.attributes[attributeItem.id] || ''}
-                        onChange={e => handleAttrChange(attributeItem.id, e.target.value)}
-                    />
-                ) : attributeItem.dataType === 'BOOLEAN' ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <input
-                            type="checkbox"
-                            checked={!!formData.attributes[attributeItem.id]}
-                            onChange={e => handleAttrChange(attributeItem.id, e.target.checked)}
-                        />
-                        <span style={{ fontSize: '13px' }}>Sí / No</span>
+        // 1. Visibilidad de Grabado
+        if (attributeItem.id === 'attr_tex_gra') {
+            const hasEngraving = !!formData.attributes['attr_gra_per'];
+            if (!hasEngraving) return null;
+        }
+
+        // 2. Condicional de Piedras (Deshabilitar si "Sin Piedra")
+        const isStoneDependency = ['attr_col_pie', 'attr_for_pie', 'attr_engaste', 'attr_pureza', 'attr_col_dia', 'attr_cort_dia', 'attr_pes_gem'].includes(attributeItem.id);
+        const isNoStone = formData.attributes['attr_tip_pie'] === 'Sin Piedra';
+        const isDisabled = isStoneDependency && isNoStone;
+
+        // 5. Lógica de Visibilidad Condicional (Diamante vs Otros)
+        const isDiamondOnly = ['attr_col_dia', 'attr_cort_dia', 'attr_pes_gem'].includes(attributeItem.id);
+        const isStoneColor = attributeItem.id === 'attr_col_pie';
+        const stoneType = formData.attributes['attr_tip_pie'];
+
+        // Si es Diamante, ocultar color comercial. Si NO es Diamante, ocultar bloque 4 Cs.
+        if (stoneType === 'Diamante') {
+            if (isStoneColor) return null;
+        } else {
+            if (isDiamondOnly) return null;
+        }
+
+        // 3. Filtro Dinámico de Ley
+        let options = domainValuesMap[attributeItem.id] || [];
+        if (attributeItem.id === 'attr_ley') {
+            const material = formData.attributes['attr_mat_pri'];
+            if (material === 'Oro') {
+                options = options.filter((v: any) => v.value.includes('k'));
+            } else if (material === 'Plata') {
+                options = options.filter((v: any) => !v.value.includes('k') && (v.value.includes('925') || v.value.includes('950')));
+            }
+        }
+
+        // 4. Filtro Dinámico de Pureza
+        if (attributeItem.id === 'attr_pureza') {
+            if (stoneType === 'Diamante') {
+                options = options.filter((v: any) => !['AAA', 'AA'].includes(v.value));
+            } else if (['Circonita (CZ)', 'Zafiro', 'Rubí', 'Esmeralda'].includes(stoneType)) {
+                options = options.filter((v: any) => ['AAA', 'AA', 'N/A'].includes(v.value));
+            }
+        }
+
+        // Diccionarios de ayuda visual
+        const purityDescriptions: Record<string, string> = {
+            'FL': 'Flawless: Sin inclusiones externas ni internas (10x)',
+            'IF': 'Internally Flawless: Sin inclusiones internas (10x)',
+            'VVS1': 'Very Very Slightly Included: Inclusiones muy difíciles de ver (10x)',
+            'VVS2': 'Very Very Slightly Included: Inclusiones difíciles de ver (10x)',
+            'VS1': 'Very Slightly Included: Inclusiones difíciles de ver con lupa',
+            'VS2': 'Very Slightly Included: Inclusiones algo más fáciles de ver con lupa',
+            'SI1': 'Slightly Included: Inclusiones visibles con lupa',
+            'SI2': 'Slightly Included: Inclusiones fácilmente visibles con lupa',
+            'I1': 'Included: Inclusiones visibles a simple vista',
+            'I2': 'Included: Inclusiones muy visibles a simple vista',
+            'I3': 'Included: Inclusiones que afectan la durabilidad/brillo',
+            'AAA': 'Calidad Comercial Superior: Máximo brillo y limpieza',
+            'AA': 'Calidad Comercial Media: Buen color y transparencia'
+        };
+
+        const diamondColorDescriptions: Record<string, string> = {
+            'D': 'Incoloro: Máxima blancura. Estándar de alta joyería.',
+            'E': 'Incoloro: Blancura excepcional.',
+            'F': 'Incoloro: Color casi imperceptible.',
+            'G': 'Casi Incoloro: Color imperceptible a menos que se compare.',
+            'H': 'Casi Incoloro: Excelente relación calidad-precio.',
+            'I': 'Casi Incoloro: Tono muy leve detectable por expertos.',
+            'J': 'Casi Incoloro: Límite de la gama incolora.',
+            'K': 'Ligeramente Color: Se empieza a notar un tono amarillento.',
+            'L': 'Ligeramente Color: Tono cálido visible.',
+            'M': 'Ligeramente Color: Color evidente.',
+            'N-R': 'Color Tenue: Tono amarillo o marrón claro visible.',
+            'S-Z': 'Color Ligero: Color amarillo o marrón evidente.',
+            'Fancy Color': 'Diamantes de colores intensos (Azul, Rosa, Amarillo intenso).'
+        };
+
+        const diamondCutDescriptions: Record<string, string> = {
+            'Excellent (EX)': 'Excelente: Máximo brillo y centelleo. Refleja casi toda la luz.',
+            'Very Good (VG)': 'Muy Bueno: Gran brillo. Difícil de distinguir de Excellent.',
+            'Good (G)': 'Bueno: Refleja la mayor parte de la luz. Buena relación calidad-precio.',
+            'Fair (F)': 'Aceptable: Brillo notablemente menor. La luz se escapa por los lados.',
+            'Poor (P)': 'Pobre: Corte muy profundo o plano. Se ve opaco o sin vida.'
+        };
+
+        const descriptionsMap: Record<string, Record<string, string>> = {
+            'attr_pureza': purityDescriptions,
+            'attr_col_dia': diamondColorDescriptions,
+            'attr_cort_dia': diamondCutDescriptions
+        };
+
+        const currentDescriptions = descriptionsMap[attributeItem.id] || {};
+
+        // Título de grupo para Certificación de Diamante
+        const isFirstDiamondField = attributeItem.id === 'attr_col_dia';
+
+        return (
+            <>
+                {isFirstDiamondField && (
+                    <div style={{
+                        gridColumn: '1 / -1',
+                        padding: '12px',
+                        backgroundColor: 'var(--primary-light)',
+                        borderRadius: '8px',
+                        marginBottom: '16px',
+                        borderLeft: '4px solid var(--primary)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px'
+                    }}>
+                        <CheckCircle2 size={18} color="var(--primary)" />
+                        <span style={{ fontWeight: 700, fontSize: '14px', color: 'var(--primary)' }}>Certificación de Gema (Las 4 Cs)</span>
                     </div>
-                ) : (
-                    <input
-                        type="text"
-                        required={mapping.isMandatory}
-                        className="form-control"
-                        style={{ width: '100%' }}
-                        value={formData.attributes[attributeItem.id] || ''}
-                        onChange={e => handleAttrChange(attributeItem.id, e.target.value)}
-                    />
                 )}
-            </div>
+                <div key={attributeItem.id} style={{ marginBottom: '16px', opacity: isDisabled ? 0.6 : 1 }}>
+                    <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600 }}>
+                        {attributeItem.name} {mapping.isMandatory && <span style={{ color: 'var(--error)' }}>*</span>}
+                        {isDisabled && <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 400, marginLeft: '8px' }}>(No Aplica)</span>}
+                    </label>
+
+                    {attributeItem.dataType === 'LIST' ? (
+                        <select
+                            required={mapping.isMandatory && !isDisabled}
+                            disabled={isDisabled}
+                            value={formData.attributes[attributeItem.id] || ''}
+                            onChange={e => handleAttrChange(attributeItem.id, e.target.value)}
+                            className="form-control"
+                            style={{ width: '100%' }}
+                        >
+                            <option value="">{isDisabled ? 'N/A' : 'Seleccione...'}</option>
+                            {options.map((v: any) => (
+                                <option
+                                    key={v.id}
+                                    value={v.value}
+                                    title={currentDescriptions[v.value] || ''}
+                                >
+                                    {v.value} {currentDescriptions[v.value] ? 'ⓘ' : ''}
+                                </option>
+                            ))}
+                        </select>
+                    ) : attributeItem.dataType === 'NUMBER' ? (
+                        <div style={{ position: 'relative' }}>
+                            <input
+                                type="number"
+                                step="0.01"
+                                required={mapping.isMandatory && !isDisabled}
+                                disabled={isDisabled}
+                                className="form-control"
+                                style={{ width: '100%' }}
+                                value={formData.attributes[attributeItem.id] || ''}
+                                onChange={e => handleAttrChange(attributeItem.id, e.target.value)}
+                            />
+                            {attributeItem.id === 'attr_pes_gem' && (
+                                <span style={{
+                                    position: 'absolute',
+                                    right: '12px',
+                                    top: '50%',
+                                    transform: 'translateY(-50%)',
+                                    fontSize: '11px',
+                                    color: 'var(--text-muted)',
+                                    fontWeight: 600
+                                }}>
+                                    ct
+                                </span>
+                            )}
+                        </div>
+                    ) : attributeItem.dataType === 'BOOLEAN' ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <input
+                                type="checkbox"
+                                disabled={isDisabled}
+                                checked={!!formData.attributes[attributeItem.id]}
+                                onChange={e => handleAttrChange(attributeItem.id, e.target.checked)}
+                            />
+                            <span style={{ fontSize: '13px' }}>Sí / No</span>
+                        </div>
+                    ) : (
+                        <input
+                            type="text"
+                            required={mapping.isMandatory && !isDisabled}
+                            disabled={isDisabled}
+                            className="form-control"
+                            style={{ width: '100%' }}
+                            value={formData.attributes[attributeItem.id] || ''}
+                            onChange={e => handleAttrChange(attributeItem.id, e.target.value)}
+                        />
+                    )}
+                </div>
+            </>
         );
     };
 

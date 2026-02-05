@@ -1,11 +1,21 @@
-import { db } from '../firebase';
-import { collection, getDocs, getDoc, doc, addDoc, updateDoc, query, where, serverTimestamp, setDoc, orderBy } from 'firebase/firestore';
-import { Domain, DomainValue } from '../models/schema';
+const { initializeApp } = require("firebase/app");
+const { getFirestore, doc, setDoc, serverTimestamp } = require("firebase/firestore");
+const { getAuth, signInAnonymously } = require("firebase/auth");
 
-const DOMAIN_COLL = 'domains';
-const VALUE_COLL = 'domain_values';
+const firebaseConfig = {
+    apiKey: "AIzaSyAgJyk3_wGde1-QM4nuuvAo3pnhqJs7Zts",
+    authDomain: "les-londor-enterprise-system.firebaseapp.com",
+    projectId: "les-londor-enterprise-system",
+    storageBucket: "les-londor-enterprise-system.firebasestorage.app",
+    messagingSenderId: "505326457231",
+    appId: "1:505326457231:web:e17e3f024828bec6f0bbfa"
+};
 
-const initialDomains: Domain[] = [
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+const initialDomains = [
     { id: 'dom_origen', code: 'ORIGEN', name: 'Origen de la Pieza', type: 'CLOSED', isActive: true, createdAt: new Date(), createdBy: 'system' },
     { id: 'dom_legal', code: 'ESTADO_LEGAL', name: 'Estado Legal', type: 'CLOSED', isActive: true, createdAt: new Date(), createdBy: 'system' },
     { id: 'dom_material', code: 'MATERIAL', name: 'Material Principal', type: 'SEMI_CLOSED', isActive: true, createdAt: new Date(), createdBy: 'system' },
@@ -17,18 +27,7 @@ const initialDomains: Domain[] = [
     { id: 'dom_forma_piedra', code: 'FORMA_PIEDRA', name: 'Forma de la Piedra', type: 'CLOSED', isActive: true, createdAt: new Date(), createdBy: 'system' },
     { id: 'dom_acabado', code: 'ACABADO', name: 'Acabado', type: 'CLOSED', isActive: true, createdAt: new Date(), createdBy: 'system' },
     { id: 'dom_engaste', code: 'TIPO_ENGASTE', name: 'Tipo de Engaste', type: 'CLOSED', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'dom_color_diamante', code: 'COLOR_DIAMANTE', name: 'Color de Diamante (GIA)', type: 'CLOSED', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'dom_corte_diamante', code: 'CORTE_DIAMANTE', name: 'Calidad de Corte', type: 'CLOSED', isActive: true, createdAt: new Date(), createdBy: 'system' },
     { id: 'dom_iva', code: 'IVA', name: 'IVA Aplicable', type: 'CLOSED', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'dom_tecnica', code: 'TECNICA_ESPECIAL', name: 'Técnica Especial', type: 'CLOSED', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'dom_personalizacion', code: 'TIPO_PERSONALIZACION', name: 'Tipo de Personalización', type: 'CLOSED', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'dom_publico', code: 'PUBLICO_OBJETIVO', name: 'Público Objetivo', type: 'CLOSED', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'dom_uso', code: 'USO', name: 'Uso', type: 'CLOSED', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'dom_estado_ope', code: 'ESTADO_OPERATIVO', name: 'Estado Operativo', type: 'CLOSED', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'dom_ubicacion', code: 'UBICACION', name: 'Ubicación Actual', type: 'SEMI_CLOSED', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'dom_iva', code: 'IVA', name: 'IVA Aplicable', type: 'CLOSED', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'dom_tipo_conjunto', code: 'TIPO_CONJUNTO', name: 'Tipo de Conjunto', type: 'CLOSED', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'dom_motivo', code: 'MOTIVO_ESPECIAL', name: 'Motivo Especial', type: 'SEMI_CLOSED', isActive: true, createdAt: new Date(), createdBy: 'system' },
     { id: 'dom_linea', code: 'COMMERCIAL_LINE', name: 'Línea Comercial', type: 'CLOSED', isActive: true, createdAt: new Date(), createdBy: 'system' },
     { id: 'dom_coleccion', code: 'COLLECTION', name: 'Colección', type: 'SEMI_CLOSED', isActive: true, createdAt: new Date(), createdBy: 'system' },
     { id: 'dom_perfil_cli', code: 'CUSTOMER_PROFILE', name: 'Perfil de Cliente', type: 'SEMI_CLOSED', isActive: true, createdAt: new Date(), createdBy: 'system' },
@@ -36,7 +35,7 @@ const initialDomains: Domain[] = [
     { id: 'dom_ocasion', code: 'OCCASION', name: 'Ocasión / Motivo', type: 'SEMI_CLOSED', isActive: true, createdAt: new Date(), createdBy: 'system' }
 ];
 
-const initialValues: DomainValue[] = [
+const initialValues = [
     // Origen
     { id: 'dv_og_new', domainId: 'dom_origen', value: 'Nueva', sortOrder: 1, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
     { id: 'dv_og_re', domainId: 'dom_origen', value: 'Recompra', sortOrder: 2, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
@@ -152,6 +151,12 @@ const initialValues: DomainValue[] = [
     { id: 'dv_pro_min', domainId: 'dom_perfil_cli', value: 'Minimalista', sortOrder: 2, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
     { id: 'dv_pro_cla', domainId: 'dom_perfil_cli', value: 'Clásico', sortOrder: 3, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
     { id: 'dv_pro_tre', domainId: 'dom_perfil_cli', value: 'Trendsetter', sortOrder: 4, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'dv_occ_aut', domainId: 'dom_ocasion', value: 'Auto-regalo', sortOrder: 10, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
+
+    { id: 'dv_pro_rom', domainId: 'dom_perfil_cli', value: 'Romántico', sortOrder: 1, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'dv_pro_min', domainId: 'dom_perfil_cli', value: 'Minimalista', sortOrder: 2, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'dv_pro_cla', domainId: 'dom_perfil_cli', value: 'Clásico', sortOrder: 3, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'dv_pro_tre', domainId: 'dom_perfil_cli', value: 'Trendsetter', sortOrder: 4, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
     { id: 'dv_pro_det', domainId: 'dom_perfil_cli', value: 'Detallista', sortOrder: 5, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
     { id: 'dv_pro_inv', domainId: 'dom_perfil_cli', value: 'Inversionista', sortOrder: 6, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
 
@@ -169,108 +174,96 @@ const initialValues: DomainValue[] = [
     { id: 'dv_pu_i3', domainId: 'dom_pureza', value: 'I3', sortOrder: 11, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
     { id: 'dv_pu_aaa', domainId: 'dom_pureza', value: 'AAA', sortOrder: 12, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
     { id: 'dv_pu_aa', domainId: 'dom_pureza', value: 'AA', sortOrder: 13, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'dv_pu_na', domainId: 'dom_pureza', value: 'N/A', sortOrder: 14, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
-
-    // Color de Diamante (Escala GIA)
-    { id: 'dv_cd_d', domainId: 'dom_color_diamante', value: 'D', sortOrder: 1, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'dv_cd_e', domainId: 'dom_color_diamante', value: 'E', sortOrder: 2, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'dv_cd_f', domainId: 'dom_color_diamante', value: 'F', sortOrder: 3, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'dv_cd_g', domainId: 'dom_color_diamante', value: 'G', sortOrder: 4, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'dv_cd_h', domainId: 'dom_color_diamante', value: 'H', sortOrder: 5, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'dv_cd_i', domainId: 'dom_color_diamante', value: 'I', sortOrder: 6, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'dv_cd_j', domainId: 'dom_color_diamante', value: 'J', sortOrder: 7, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'dv_cd_k', domainId: 'dom_color_diamante', value: 'K', sortOrder: 8, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'dv_cd_l', domainId: 'dom_color_diamante', value: 'L', sortOrder: 9, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'dv_cd_m', domainId: 'dom_color_diamante', value: 'M', sortOrder: 10, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'dv_cd_nr', domainId: 'dom_color_diamante', value: 'N-R', sortOrder: 11, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'dv_cd_sz', domainId: 'dom_color_diamante', value: 'S-Z', sortOrder: 12, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'dv_cd_fc', domainId: 'dom_color_diamante', value: 'Fancy Color', sortOrder: 13, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'dv_cd_na', domainId: 'dom_color_diamante', value: 'N/A', sortOrder: 14, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
-
-    // Calidad de Corte
-    { id: 'dv_ct_ex', domainId: 'dom_corte_diamante', value: 'Excellent (EX)', sortOrder: 1, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'dv_ct_vg', domainId: 'dom_corte_diamante', value: 'Very Good (VG)', sortOrder: 2, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'dv_ct_g', domainId: 'dom_corte_diamante', value: 'Good (G)', sortOrder: 3, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'dv_ct_f', domainId: 'dom_corte_diamante', value: 'Fair (F)', sortOrder: 4, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'dv_ct_p', domainId: 'dom_corte_diamante', value: 'Poor (P)', sortOrder: 5, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'dv_ct_na', domainId: 'dom_corte_diamante', value: 'N/A', sortOrder: 6, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' }
+    { id: 'dv_pu_na', domainId: 'dom_pureza', value: 'N/A', sortOrder: 14, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' }
 ];
 
-export const DomainService = {
-    getDomains: async (): Promise<Domain[]> => {
-        const q = query(collection(db, DOMAIN_COLL), where('isActive', '==', true));
-        const querySnapshot = await getDocs(q);
+const initialAttributes = [
+    { id: 'attr_mat_pri', name: 'Material Principal', description: 'Metal base de la pieza', dataType: 'LIST', domainId: 'dom_material', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'attr_ley', name: 'Ley / Quilataje', description: 'Pureza del metal precioso', dataType: 'LIST', domainId: 'dom_ley', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'attr_col_met', name: 'Color del Metal', description: 'Tonalidad del metal', dataType: 'LIST', domainId: 'dom_color_metal', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'attr_acabado', name: 'Acabado del Metal', description: 'Tratamiento superficial del metal', dataType: 'LIST', domainId: 'dom_acabado', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'attr_engaste', name: 'Tipo de Engaste', description: 'Método de sujeción de piedras', dataType: 'LIST', domainId: 'dom_engaste', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'attr_tip_pie', name: 'Tipo de Piedra', description: 'Gema o piedra principal', dataType: 'LIST', domainId: 'dom_tipo_piedra', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'attr_col_pie', name: 'Color de la Piedra', description: 'Tonalidad de la gema', dataType: 'LIST', domainId: 'dom_color_piedra', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'attr_for_pie', name: 'Forma de la Piedra', description: 'Corte o talla de la gema', dataType: 'LIST', domainId: 'dom_forma_piedra', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'attr_pureza', name: 'Pureza / Claridad', description: 'Transparencia y limpieza de la gema', dataType: 'LIST', domainId: 'dom_pureza', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'attr_tal', name: 'Talla', description: 'Tamaño de la pieza', dataType: 'NUMBER', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'attr_lon', name: 'Longitud (mm)', description: 'Largo de cadena o pulsera', dataType: 'NUMBER', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'attr_pes_met', name: 'Peso del Metal (gr)', description: 'Peso neto del metal', dataType: 'NUMBER', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'attr_anc_ban', name: 'Ancho de la Banda (mm)', description: 'Grosor del anillo', dataType: 'NUMBER', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'attr_gra_per', name: 'Grabado Personalizado', description: 'Si la pieza permite grabado', dataType: 'BOOLEAN', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'attr_tex_gra', name: 'Texto del Grabado', description: 'Contenido a grabar', dataType: 'TEXT', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'attr_cer_aut', name: 'Certificado de Autenticidad', description: 'Si incluye certificado', dataType: 'BOOLEAN', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'attr_iva', name: 'IVA Aplicable', description: 'Régimen fiscal', dataType: 'LIST', domainId: 'dom_iva', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'attr_linea', name: 'Línea Comercial', description: 'Segmento comercial', dataType: 'LIST', domainId: 'dom_linea', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'attr_colec', name: 'Colección', description: 'Colección de diseño', dataType: 'TEXT', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'attr_simbol', name: 'Simbología', description: 'Significado de la pieza', dataType: 'LIST', domainId: 'dom_simbol', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'attr_ocasion', name: 'Ocasión / Motivo', description: 'Uso recomendado', dataType: 'LIST', domainId: 'dom_ocasion', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'attr_perfil', name: 'Perfil de Cliente', description: 'Target psicográfico', dataType: 'LIST', domainId: 'dom_perfil_cli', isActive: true, createdAt: new Date(), createdBy: 'system' }
+];
 
-        if (querySnapshot.empty) {
-            for (const dom of initialDomains) {
-                await setDoc(doc(db, DOMAIN_COLL, dom.id), { ...dom, createdAt: serverTimestamp() });
-            }
-            return initialDomains;
+const initialMappings = [
+    // Mapeo genérico para Anillos (cat_anillos)
+    { id: 'map_an_mat', categoryId: 'cat_anillos', attributeId: 'attr_mat_pri', isMandatory: true, sortOrder: 1 },
+    { id: 'map_an_ley', categoryId: 'cat_anillos', attributeId: 'attr_ley', isMandatory: true, sortOrder: 2 },
+    { id: 'map_an_col', categoryId: 'cat_anillos', attributeId: 'attr_col_met', isMandatory: true, sortOrder: 3 },
+    { id: 'map_an_tal', categoryId: 'cat_anillos', attributeId: 'attr_tal', isMandatory: false, sortOrder: 4 },
+    { id: 'map_an_tip_p', categoryId: 'cat_anillos', attributeId: 'attr_tip_pie', isMandatory: true, sortOrder: 5 },
+    { id: 'map_an_col_p', categoryId: 'cat_anillos', attributeId: 'attr_col_pie', isMandatory: false, sortOrder: 6 },
+    { id: 'map_an_for_p', categoryId: 'cat_anillos', attributeId: 'attr_for_pie', isMandatory: false, sortOrder: 7 },
+    { id: 'map_an_pur_p', categoryId: 'cat_anillos', attributeId: 'attr_pureza', isMandatory: false, sortOrder: 8 },
+    { id: 'map_an_eng', categoryId: 'cat_anillos', attributeId: 'attr_engaste', isMandatory: false, sortOrder: 9 },
+    { id: 'map_an_gra', categoryId: 'cat_anillos', attributeId: 'attr_gra_per', isMandatory: false, sortOrder: 10 },
+    { id: 'map_an_tgra', categoryId: 'cat_anillos', attributeId: 'attr_tex_gra', isMandatory: false, sortOrder: 11 },
+    { id: 'map_an_cer', categoryId: 'cat_anillos', attributeId: 'attr_cer_aut', isMandatory: false, sortOrder: 12 },
+    { id: 'map_an_iva', categoryId: 'cat_anillos', attributeId: 'attr_iva', isMandatory: true, sortOrder: 13 },
+
+    // Mapeo genérico para Pendientes (cat_pendientes)
+    { id: 'map_pe_mat', categoryId: 'cat_pendientes', attributeId: 'attr_mat_pri', isMandatory: true, sortOrder: 1 },
+    { id: 'map_pe_ley', categoryId: 'cat_pendientes', attributeId: 'attr_ley', isMandatory: true, sortOrder: 2 },
+    { id: 'map_pe_col', categoryId: 'cat_pendientes', attributeId: 'attr_col_met', isMandatory: true, sortOrder: 3 },
+    { id: 'map_pe_tip_p', categoryId: 'cat_pendientes', attributeId: 'attr_tip_pie', isMandatory: true, sortOrder: 4 },
+    { id: 'map_pe_col_p', categoryId: 'cat_pendientes', attributeId: 'attr_col_pie', isMandatory: false, sortOrder: 5 },
+    { id: 'map_pe_pur_p', categoryId: 'cat_pendientes', attributeId: 'attr_pureza', isMandatory: false, sortOrder: 6 },
+    { id: 'map_pe_eng', categoryId: 'cat_pendientes', attributeId: 'attr_engaste', isMandatory: false, sortOrder: 7 },
+    { id: 'map_pe_iva', categoryId: 'cat_pendientes', attributeId: 'attr_iva', isMandatory: true, sortOrder: 8 }
+];
+
+async function seed() {
+    try {
+        await signInAnonymously(auth);
+        console.log("Autenticado");
+
+        // 1. Seed Domains
+        console.log("Sembrando Dominios...");
+        for (const dom of initialDomains) {
+            await setDoc(doc(db, 'domains', dom.id), { ...dom, createdAt: serverTimestamp() });
         }
 
-        return querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as Domain[];
-    },
-
-    getValuesByDomain: async (domainId: string): Promise<DomainValue[]> => {
-        const q = query(collection(db, VALUE_COLL),
-            where('domainId', '==', domainId),
-            where('isActive', '==', true));
-        const querySnapshot = await getDocs(q);
-
-        if (querySnapshot.empty) {
-            const defaults = initialValues.filter(v => v.domainId === domainId);
-            for (const v of defaults) {
-                await setDoc(doc(db, VALUE_COLL, v.id), { ...v, createdAt: serverTimestamp() });
-            }
-            return defaults;
+        // 2. Seed Domain Values
+        console.log("Sembrando Valores de Dominio...");
+        for (const val of initialValues) {
+            await setDoc(doc(db, 'domain_values', val.id), { ...val, createdAt: serverTimestamp() });
         }
 
-        const values = querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as DomainValue[];
-        // Ordenar en memoria para evitar requerir índices compuestos de Firestore
-        return values.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
-    },
-
-    createDomain: async (data: Omit<Domain, 'id' | 'createdAt' | 'isActive'>): Promise<Domain> => {
-        const id = `dom_${Date.now()}`;
-        const newDomain = { ...data, isActive: true, createdAt: serverTimestamp() };
-        await setDoc(doc(db, DOMAIN_COLL, id), newDomain);
-        return { ...newDomain, id, createdAt: new Date() } as Domain;
-    },
-
-    addValue: async (data: Omit<DomainValue, 'id' | 'createdAt' | 'isActive'>): Promise<DomainValue> => {
-        const id = `val_${Date.now()}`;
-        const newValue = { ...data, isActive: true, createdAt: serverTimestamp() };
-        await setDoc(doc(db, VALUE_COLL, id), newValue);
-        return { ...newValue, id, createdAt: new Date() } as DomainValue;
-    },
-
-    updateDomain: async (id: string, updates: Partial<Domain>): Promise<Domain | undefined> => {
-        const docRef = doc(db, DOMAIN_COLL, id);
-        await updateDoc(docRef, updates);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-            return { ...docSnap.data(), id: docSnap.id } as Domain;
+        // 3. Seed Attributes
+        console.log("Sembrando Atributos...");
+        for (const attr of initialAttributes) {
+            await setDoc(doc(db, 'attributes', attr.id), { ...attr, createdAt: serverTimestamp() });
         }
-        return undefined;
-    },
 
-    updateValue: async (id: string, updates: Partial<DomainValue>): Promise<DomainValue | undefined> => {
-        const docRef = doc(db, VALUE_COLL, id);
-        await updateDoc(docRef, updates);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-            return { ...docSnap.data(), id: docSnap.id } as DomainValue;
+        // 4. Seed Mappings
+        console.log("Sembrando Mapeos de Clasificación...");
+        for (const map of initialMappings) {
+            await setDoc(doc(db, 'classification_mappings', map.id), { ...map, createdAt: serverTimestamp() });
         }
-        return undefined;
-    },
 
-    deleteValueLogic: async (id: string): Promise<boolean> => {
-        const docRef = doc(db, VALUE_COLL, id);
-        try {
-            await updateDoc(docRef, { isActive: false });
-            return true;
-        } catch (e) {
-            return false;
-        }
+        console.log("¡Siembra completada con éxito!");
+        process.exit(0);
+    } catch (error) {
+        console.error("Error en la siembra:", error);
+        process.exit(1);
     }
-};
+}
+
+seed();

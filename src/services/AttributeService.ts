@@ -8,18 +8,34 @@ const initialAttributes: Attribute[] = [
     { id: 'attr_mat_pri', name: 'Material Principal', description: 'Metal base de la pieza', dataType: 'LIST', domainId: 'dom_material', isActive: true, createdAt: new Date(), createdBy: 'system' },
     { id: 'attr_ley', name: 'Ley / Quilataje', description: 'Pureza del metal precioso', dataType: 'LIST', domainId: 'dom_ley', isActive: true, createdAt: new Date(), createdBy: 'system' },
     { id: 'attr_col_met', name: 'Color del Metal', description: 'Tonalidad del metal', dataType: 'LIST', domainId: 'dom_color_metal', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'attr_pes_ex', name: 'Peso Exacto', description: 'Peso real en gramos', dataType: 'NUMBER', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'attr_acabado', name: 'Acabado del Metal', description: 'Tratamiento superficial del metal', dataType: 'LIST', domainId: 'dom_acabado', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'attr_engaste', name: 'Tipo de Engaste', description: 'Método de sujeción de piedras', dataType: 'LIST', domainId: 'dom_engaste', isActive: true, createdAt: new Date(), createdBy: 'system' },
+
     { id: 'attr_tip_pie', name: 'Tipo de Piedra', description: 'Gema o piedra principal', dataType: 'LIST', domainId: 'dom_tipo_piedra', isActive: true, createdAt: new Date(), createdBy: 'system' },
     { id: 'attr_col_pie', name: 'Color de la Piedra', description: 'Tonalidad de la gema', dataType: 'LIST', domainId: 'dom_color_piedra', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'attr_pureza', name: 'Pureza', description: 'Grado de pureza de la piedra', dataType: 'LIST', domainId: 'dom_pureza', isActive: true, createdAt: new Date(), createdBy: 'system' },
     { id: 'attr_for_pie', name: 'Forma de la Piedra', description: 'Corte o talla de la gema', dataType: 'LIST', domainId: 'dom_forma_piedra', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'attr_acabado', name: 'Acabado', description: 'Tratamiento superficial del metal', dataType: 'LIST', domainId: 'dom_acabado', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'attr_engaste', name: 'Tipo de Engaste', description: 'Método de sujeción de piedras', dataType: 'LIST', domainId: 'dom_engaste', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'attr_origen', name: 'Origen de la pieza', description: 'Procedencia de entrada al stock', dataType: 'LIST', domainId: 'dom_origen', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'attr_legal', name: 'Estado legal', description: 'Situación jurídica de la pieza', dataType: 'LIST', domainId: 'dom_legal', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'attr_publico', name: 'Público objetivo', description: 'Segmento de cliente', dataType: 'LIST', domainId: 'dom_publico', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'attr_uso', name: 'Uso / Ocasión', description: 'Contexto de uso recomendado', dataType: 'LIST', domainId: 'dom_uso', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'attr_iva', name: 'IVA Aplicable', description: 'Régimen fiscal', dataType: 'LIST', domainId: 'dom_iva', isActive: true, createdAt: new Date(), createdBy: 'system' }
+    { id: 'attr_pureza', name: 'Pureza / Claridad', description: 'Transparencia y limpieza de la gema', dataType: 'LIST', domainId: 'dom_pureza', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'attr_col_dia', name: 'Color de Diamante (GIA)', description: 'Ausencia de color en diamantes incoloros', dataType: 'LIST', domainId: 'dom_color_diamante', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'attr_cort_dia', name: 'Calidad de Corte', description: 'Determinante del brillo y fuego del diamante', dataType: 'LIST', domainId: 'dom_corte_diamante', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'attr_pes_gem', name: 'Peso de la Gema (ct)', description: 'Peso del diamante o piedra en Quilates', dataType: 'NUMBER', isActive: true, createdAt: new Date(), createdBy: 'system' },
+
+    { id: 'attr_tal', name: 'Talla', description: 'Tamaño de la pieza', dataType: 'NUMBER', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'attr_lon', name: 'Longitud (mm)', description: 'Largo de cadena o pulsera', dataType: 'NUMBER', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'attr_pes_met', name: 'Peso del Metal (gr)', description: 'Peso neto del metal', dataType: 'NUMBER', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'attr_anc_ban', name: 'Ancho de la Banda (mm)', description: 'Grosor del anillo', dataType: 'NUMBER', isActive: true, createdAt: new Date(), createdBy: 'system' },
+
+    { id: 'attr_gra_per', name: 'Grabado Personalizado', description: 'Si la pieza permite grabado', dataType: 'BOOLEAN', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'attr_tex_gra', name: 'Texto del Grabado', description: 'Contenido a grabar', dataType: 'TEXT', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'attr_cer_aut', name: 'Certificado de Autenticidad', description: 'Si incluye certificado', dataType: 'BOOLEAN', isActive: true, createdAt: new Date(), createdBy: 'system' },
+
+    { id: 'attr_iva', name: 'IVA Aplicable', description: 'Régimen fiscal', dataType: 'LIST', domainId: 'dom_iva', isActive: true, createdAt: new Date(), createdBy: 'system' },
+
+    // Estos campos también están en el modelo top-level, pero se mantienen aquí para clasificación dinámica
+    { id: 'attr_linea', name: 'Línea Comercial', description: 'Segmento comercial', dataType: 'LIST', domainId: 'dom_linea', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'attr_colec', name: 'Colección', description: 'Colección de diseño', dataType: 'TEXT', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'attr_simbol', name: 'Simbología', description: 'Significado de la pieza', dataType: 'LIST', domainId: 'dom_simbol', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'attr_ocasion', name: 'Ocasión / Motivo', description: 'Uso recomendado', dataType: 'LIST', domainId: 'dom_ocasion', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'attr_perfil', name: 'Perfil de Cliente', description: 'Target psicográfico', dataType: 'LIST', domainId: 'dom_perfil_cli', isActive: true, createdAt: new Date(), createdBy: 'system' }
 ];
 
 export const AttributeService = {
