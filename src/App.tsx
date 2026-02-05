@@ -7,9 +7,11 @@ import InventoryManager from './components/InventoryManager';
 import ClassificationControlTower from './components/ClassificationControlTower';
 import CustomerManager from './components/CustomerManager';
 import ReservationBandeja from './components/ReservationBandeja';
+import SupplierManager from './components/SupplierManager';
+
 
 function App() {
-    const [activeTab, setActiveTab] = useState<'inventory' | 'attributes' | 'logistics' | 'classification_config' | 'customers' | 'reservations'>('inventory');
+    const [activeTab, setActiveTab] = useState<'inventory' | 'attributes' | 'logistics' | 'classification_config' | 'customers' | 'reservations' | 'suppliers'>('inventory');
 
     return (
         <div className="app-shell" style={{ minHeight: '100vh', backgroundColor: '#fdfdfd' }}>
@@ -56,6 +58,18 @@ function App() {
                         >
                             Clientes
                         </button>
+                        <button
+                            onClick={() => setActiveTab('suppliers')}
+                            style={{
+                                background: 'none', border: 'none', fontFamily: 'Outfit', fontWeight: 600, fontSize: '13px',
+                                color: activeTab === 'suppliers' ? 'var(--accent)' : 'var(--text-muted)', cursor: 'pointer',
+                                borderBottom: activeTab === 'suppliers' ? '2px solid var(--accent)' : '2px solid transparent',
+                                padding: '4px 0', transition: 'all 0.2s'
+                            }}
+                        >
+                            Proveedores
+                        </button>
+
                         <button
                             onClick={() => setActiveTab('reservations')}
                             style={{
@@ -107,6 +121,7 @@ function App() {
             <main style={{ paddingTop: '40px' }}>
                 {activeTab === 'inventory' && <InventoryManager />}
                 {activeTab === 'customers' && <CustomerManager />}
+                {activeTab === 'suppliers' && <SupplierManager />}
                 {activeTab === 'reservations' && <ReservationBandeja />}
                 {activeTab === 'classification_config' && <ClassificationControlTower />}
                 {activeTab === 'attributes' && <DomainAttributeManager />}

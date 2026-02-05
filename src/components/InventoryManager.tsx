@@ -50,7 +50,8 @@ import { AIService } from '../services/AIService';
 import { CustomerService } from '../services/CustomerService';
 import { ReservationService } from '../services/ReservationService';
 import { CommercialService } from '../services/CommercialService';
-import { InventoryItem, Category, Subcategory, Location, OperationalStatus, ClassificationMapping, Attribute, Customer, DomainValue } from '../models/schema';
+import { SupplierService } from '../services/SupplierService';
+import { InventoryItem, Category, Subcategory, Location, OperationalStatus, ClassificationMapping, Attribute, Customer, DomainValue, Supplier } from '../models/schema';
 import CommercialDashboard from './CommercialDashboard';
 import DomainManagerModal from './DomainManagerModal';
 
@@ -61,6 +62,7 @@ const InventoryManager: React.FC = () => {
     const [locations, setLocations] = useState<Location[]>([]);
     const [statuses, setStatuses] = useState<OperationalStatus[]>([]);
     const [customers, setCustomers] = useState<Customer[]>([]);
+    const [suppliers, setSuppliers] = useState<Supplier[]>([]);
 
     // Estados para Maestros Dinámicos Comerciales
     const [lineValues, setLineValues] = useState<DomainValue[]>([]);
@@ -136,7 +138,8 @@ const InventoryManager: React.FC = () => {
         symbology: [] as string[],
         occasion: [] as string[],
         customerProfile: [] as string[],
-        attributes: {} as Record<string, any>
+        attributes: {} as Record<string, any>,
+        supplierId: ''
     });
 
     const [selectedDetailItem, setSelectedDetailItem] = useState<InventoryItem | null>(null);
@@ -248,7 +251,8 @@ const InventoryManager: React.FC = () => {
                 locsData,
                 statsData,
                 attrsData,
-                custsData
+                custsData,
+                suppsData
             ] = await Promise.all([
                 InventoryService.getAll(),
                 CategoryService.getAll(),
@@ -256,7 +260,8 @@ const InventoryManager: React.FC = () => {
                 LocationService.getAll(),
                 OperationalStatusService.getAll(),
                 AttributeService.getAll(),
-                CustomerService.getAll()
+                CustomerService.getAll(),
+                SupplierService.getAll()
             ]);
 
             console.log("Datos cargados:", { items: itemsData.length, cats: catsData.length, subs: subsData.length });
@@ -267,6 +272,7 @@ const InventoryManager: React.FC = () => {
             setStatuses(statsData);
             setAllAttributes(attrsData);
             setCustomers(custsData);
+            setSuppliers(suppsData);
             await fetchCommercialMasters();
         } catch (error: any) {
             console.error("Error crítico en loadData:", error);
@@ -361,7 +367,10 @@ const InventoryManager: React.FC = () => {
             symbology: [],
             occasion: [],
             customerProfile: [],
-            attributes: {}
+            occasion: [],
+            customerProfile: [],
+            attributes: {},
+            supplierId: ''
         });
         setDynamicFields([]);
         setEditingItemId(null);
@@ -433,7 +442,9 @@ const InventoryManager: React.FC = () => {
             symbology: item.symbology || [],
             occasion: item.occasion || [],
             customerProfile: item.customerProfile || [],
-            attributes: item.attributes || {}
+            customerProfile: item.customerProfile || [],
+            attributes: item.attributes || {},
+            supplierId: item.supplierId || ''
         });
         setEditingItemId(item.id);
         setUploadedImages(item.images || []);

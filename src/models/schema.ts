@@ -174,6 +174,7 @@ export interface InventoryItem {
     // Valores Económicos (Básicos Fase 1)
     purchasePrice?: number;   // Coste
     salePrice?: number;       // Precio PVP base
+    supplierId?: string;      // FK a Supplier
 
     // Datos Físicos
     mainWeight?: number;      // Peso total en gramos
@@ -233,6 +234,22 @@ export interface Customer {
     email?: string;
     address?: string;
     tags?: string[];     // VIP, Recurrente, etc.
+    isActive: boolean;
+    createdAt: Date;
+    createdBy: string;
+}
+
+// Proveedores (Fase 1 - Operaciones)
+export interface Supplier {
+    id: string;
+    name: string;
+    taxId?: string;       // CIF/NIF
+    contactPerson?: string;
+    email?: string;
+    phone?: string;
+    address?: string;
+    website?: string;
+    notes?: string;
     isActive: boolean;
     createdAt: Date;
     createdBy: string;
