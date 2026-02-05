@@ -27,7 +27,16 @@ import {
     Calculator,
     Table,
     ChevronUp,
-    ChevronDown
+    ChevronDown,
+    Clock,
+    Heart,
+    Sparkles,
+    Share2,
+    Target,
+    Users,
+    Calendar,
+    Zap,
+    Settings
 } from 'lucide-react';
 import { InventoryService } from '../services/InventoryService';
 import { CategoryService } from '../services/CategoryService';
@@ -38,7 +47,12 @@ import { ClassificationService } from '../services/ClassificationService';
 import { AttributeService } from '../services/AttributeService';
 import { DomainService } from '../services/DomainService';
 import { AIService } from '../services/AIService';
-import { InventoryItem, Category, Subcategory, Location, OperationalStatus, ClassificationMapping, Attribute } from '../models/schema';
+import { CustomerService } from '../services/CustomerService';
+import { ReservationService } from '../services/ReservationService';
+import { CommercialService } from '../services/CommercialService';
+import { InventoryItem, Category, Subcategory, Location, OperationalStatus, ClassificationMapping, Attribute, Customer, DomainValue } from '../models/schema';
+import CommercialDashboard from './CommercialDashboard';
+import DomainManagerModal from './DomainManagerModal';
 
 const InventoryManager: React.FC = () => {
     const [items, setItems] = useState<InventoryItem[]>([]);
@@ -46,6 +60,17 @@ const InventoryManager: React.FC = () => {
     const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
     const [locations, setLocations] = useState<Location[]>([]);
     const [statuses, setStatuses] = useState<OperationalStatus[]>([]);
+    const [customers, setCustomers] = useState<Customer[]>([]);
+
+    // Estados para Maestros Dinámicos Comerciales
+    const [lineValues, setLineValues] = useState<DomainValue[]>([]);
+    const [collectionValues, setCollectionValues] = useState<DomainValue[]>([]);
+    const [profileValues, setProfileValues] = useState<DomainValue[]>([]);
+    const [symbologyValues, setSymbologyValues] = useState<DomainValue[]>([]);
+    const [occasionValues, setOccasionValues] = useState<DomainValue[]>([]);
+    const [isDomainModalOpen, setIsDomainModalOpen] = useState(false);
+    const [managedDomain, setManagedDomain] = useState<{ id: string, name: string }>({ id: '', name: '' });
+    const [isGeneratingAI, setIsGeneratingAI] = useState(false);
 
     // Dynamic Fields State
     const [dynamicFields, setDynamicFields] = useState<ClassificationMapping[]>([]);
@@ -61,6 +86,10 @@ const InventoryManager: React.FC = () => {
     const [selectedItems, setSelectedItems] = useState<string[]>([]);
     const [sortConfig, setSortConfig] = useState<{ field: string; direction: 'asc' | 'desc' } | null>(null);
 
+    // Sales Assistant Mode
+    const [isSalesAssistantActive, setIsSalesAssistantActive] = useState(false);
+    const [salesIntent, setSalesIntent] = useState('');
+
     // Filters state
     const [filters, setFilters] = useState({
         categoryId: '',
@@ -68,6 +97,16 @@ const InventoryManager: React.FC = () => {
         statusId: '',
         minPrice: '',
         maxPrice: ''
+    });
+
+    // Módulos de Inteligencia UI State
+    const [showCommercialDashboard, setShowCommercialDashboard] = useState(false);
+    const [showBulkTagging, setShowBulkTagging] = useState(false);
+    const [bulkTags, setBulkTags] = useState({
+        commercialLine: '',
+        symbology: [] as string[],
+        occasion: [] as string[],
+        customerProfile: [] as string[]
     });
 
     // Form State
@@ -84,6 +123,19 @@ const InventoryManager: React.FC = () => {
         isApproved: false,
         itemCode: '',
         comments: '',
+        socialDescription: '',
+        detailedDescription: {
+            design: '',
+            details: '',
+            materials: '',
+            technicalSpecs: '',
+            symbolism: ''
+        },
+        commercialLine: '',
+        collection: '',
+        symbology: [] as string[],
+        occasion: [] as string[],
+        customerProfile: [] as string[],
         attributes: {} as Record<string, any>
     });
 
@@ -95,9 +147,55 @@ const InventoryManager: React.FC = () => {
     const [isDragging, setIsDragging] = useState(false);
     const fileInputRef = React.useRef<HTMLInputElement>(null);
 
+    // Reservation State
+    const [isReservationModalOpen, setIsReservationModalOpen] = useState(false);
+    const [reservationExpiry, setReservationExpiry] = useState('');
+    const [selectedCustomerId, setSelectedCustomerId] = useState('');
+    const [customersList, setCustomersList] = useState<Customer[]>([]);
+
     useEffect(() => {
         loadData();
     }, []);
+
+    const handleOpenReservation = async () => {
+        setIsReservationModalOpen(true);
+        // Sugerir caducidad en 3 días por defecto
+        const threeDays = new Date();
+        threeDays.setDate(threeDays.getDate() + 3);
+        setReservationExpiry(threeDays.toISOString().split('T')[0]);
+
+        try {
+            const custs = await CustomerService.getAll();
+            setCustomersList(custs);
+        } catch (err) {
+            console.error("Error loading customers for reservation:", err);
+        }
+    };
+
+    const handleCreateReservation = async () => {
+        if (!selectedDetailItem || !selectedCustomerId || !reservationExpiry) {
+            alert("Por favor, selecciona un cliente y una fecha de vencimiento.");
+            return;
+        }
+
+        try {
+            await ReservationService.createReservation({
+                itemId: selectedDetailItem.id,
+                customerId: selectedCustomerId,
+                locationId: selectedDetailItem.locationId,
+                expiryDate: new Date(reservationExpiry),
+                resolutionNote: '',
+                createdBy: 'admin'
+            });
+            setIsReservationModalOpen(false);
+            setSelectedDetailItem(null);
+            await loadData();
+            alert("Reserva creada con éxito.");
+        } catch (err) {
+            console.error("Error creating reservation:", err);
+            alert("Error al crear la reserva.");
+        }
+    };
 
     // Cargar campos dinámicos cuando cambia la categoría o subcategoría
     useEffect(() => {
@@ -149,14 +247,16 @@ const InventoryManager: React.FC = () => {
                 subsData,
                 locsData,
                 statsData,
-                attrsData
+                attrsData,
+                custsData
             ] = await Promise.all([
                 InventoryService.getAll(),
                 CategoryService.getAll(),
                 SubcategoryService.getAll(),
                 LocationService.getAll(),
                 OperationalStatusService.getAll(),
-                AttributeService.getAll()
+                AttributeService.getAll(),
+                CustomerService.getAll()
             ]);
 
             console.log("Datos cargados:", { items: itemsData.length, cats: catsData.length, subs: subsData.length });
@@ -166,6 +266,8 @@ const InventoryManager: React.FC = () => {
             setLocations(locsData);
             setStatuses(statsData);
             setAllAttributes(attrsData);
+            setCustomers(custsData);
+            await fetchCommercialMasters();
         } catch (error: any) {
             console.error("Error crítico en loadData:", error);
             if (error.message?.includes("permissions")) {
@@ -175,6 +277,26 @@ const InventoryManager: React.FC = () => {
             }
         }
     };
+
+    const fetchCommercialMasters = async () => {
+        try {
+            const [lines, cols, profs, sims, occs] = await Promise.all([
+                DomainService.getValuesByDomain('dom_linea'),
+                DomainService.getValuesByDomain('dom_coleccion'),
+                DomainService.getValuesByDomain('dom_perfil_cli'),
+                DomainService.getValuesByDomain('dom_simbol'),
+                DomainService.getValuesByDomain('dom_ocasion')
+            ]);
+            setLineValues(lines);
+            setCollectionValues(cols);
+            setProfileValues(profs);
+            setSymbologyValues(sims);
+            setOccasionValues(occs);
+        } catch (error) {
+            console.error("Error loading commercial masters:", error);
+        }
+    };
+
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -191,7 +313,14 @@ const InventoryManager: React.FC = () => {
                 await InventoryService.create({
                     ...formData,
                     images: finalImages,
-                    createdBy: 'admin'
+                    createdBy: 'admin',
+                    socialDescription: formData.socialDescription,
+                    detailedDescription: formData.detailedDescription,
+                    commercialLine: formData.commercialLine,
+                    collection: formData.collection,
+                    symbology: formData.symbology,
+                    occasion: formData.occasion,
+                    customerProfile: formData.customerProfile
                 });
             }
             setIsAddModalOpen(false);
@@ -219,6 +348,19 @@ const InventoryManager: React.FC = () => {
             isApproved: false,
             itemCode: '',
             comments: '',
+            socialDescription: '',
+            detailedDescription: {
+                design: '',
+                details: '',
+                materials: '',
+                technicalSpecs: '',
+                symbolism: ''
+            },
+            commercialLine: '',
+            collection: '',
+            symbology: [],
+            occasion: [],
+            customerProfile: [],
             attributes: {}
         });
         setDynamicFields([]);
@@ -251,6 +393,19 @@ const InventoryManager: React.FC = () => {
             isApproved: item.isApproved || false,
             itemCode: item.itemCode || '',
             comments: item.comments || '',
+            socialDescription: item.socialDescription || '',
+            detailedDescription: {
+                design: item.detailedDescription?.design || '',
+                details: item.detailedDescription?.details || '',
+                materials: item.detailedDescription?.materials || '',
+                technicalSpecs: item.detailedDescription?.technicalSpecs || '',
+                symbolism: item.detailedDescription?.symbolism || ''
+            },
+            commercialLine: item.commercialLine || '',
+            collection: item.collection || '',
+            symbology: item.symbology || [],
+            occasion: item.occasion || [],
+            customerProfile: item.customerProfile || [],
             attributes: item.attributes || {}
         });
         setEditingItemId(item.id);
@@ -300,6 +455,18 @@ const InventoryManager: React.FC = () => {
                 ...prev,
                 name: result.name || prev.name,
                 description: result.description || prev.description,
+                socialDescription: result.socialDescription || prev.socialDescription,
+                detailedDescription: {
+                    design: result.detailedDescription?.design || prev.detailedDescription.design,
+                    details: result.detailedDescription?.details || prev.detailedDescription.details,
+                    materials: result.detailedDescription?.materials || prev.detailedDescription.materials,
+                    technicalSpecs: result.detailedDescription?.technicalSpecs || prev.detailedDescription.technicalSpecs,
+                    symbolism: result.detailedDescription?.symbolism || prev.detailedDescription.symbolism
+                },
+                commercialLine: result.commercialLine || prev.commercialLine,
+                symbology: result.symbology || prev.symbology,
+                occasion: result.occasion || prev.occasion,
+                customerProfile: result.customerProfile || prev.customerProfile,
                 categoryId: finalCategoryId,
                 subcategoryId: finalSubcategoryId,
                 attributes: {
@@ -314,6 +481,43 @@ const InventoryManager: React.FC = () => {
             setIsScanning(false);
         }
     };
+
+    const handleManualAICopywriting = async () => {
+        setIsGeneratingAI(true);
+        try {
+            // Recopilar datos relevantes para el prompt
+            const context = {
+                name: formData.name,
+                category: getCategoryName(formData.categoryId),
+                subcategory: getSubcategoryName(formData.subcategoryId),
+                commercialLine: formData.commercialLine,
+                collection: formData.collection,
+                symbology: (formData.symbology || []).join(', '),
+                occasion: (formData.occasion || []).join(', '),
+                customerProfile: (formData.customerProfile || []).join(', ')
+            };
+
+            const result = await AIService.generateCopywriting(context);
+
+            if (result) {
+                setFormData(prev => ({
+                    ...prev,
+                    socialDescription: result.socialDescription || prev.socialDescription,
+                    detailedDescription: {
+                        ...prev.detailedDescription,
+                        ...result.detailedDescription
+                    }
+                }));
+                alert("Contenido generado con éxito.");
+            }
+        } catch (error) {
+            console.error("Error generating AI content:", error);
+            alert("Error al generar contenido con IA.");
+        } finally {
+            setIsGeneratingAI(false);
+        }
+    };
+
 
     const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
@@ -370,7 +574,24 @@ const InventoryManager: React.FC = () => {
         const matchesMinPrice = !filters.minPrice || price >= parseFloat(filters.minPrice);
         const matchesMaxPrice = !filters.maxPrice || price <= parseFloat(filters.maxPrice);
 
-        return matchesSearch && matchesCategory && matchesLocation && matchesStatus && matchesMinPrice && matchesMaxPrice;
+        // Filtro de Asistente de Ventas (Búsqueda Emocional/Por Intento)
+        let matchesIntent = true;
+        if (isSalesAssistantActive && salesIntent) {
+            const intent = salesIntent.toLowerCase();
+            const commercialLine = (item.commercialLine || '').toLowerCase();
+            const collection = (item.collection || '').toLowerCase();
+            const symbology = (item.symbology || []).join(' ').toLowerCase();
+            const occasion = (item.occasion || []).join(' ').toLowerCase();
+            const profile = (item.customerProfile || []).join(' ').toLowerCase();
+
+            matchesIntent = commercialLine.includes(intent) ||
+                collection.includes(intent) ||
+                symbology.includes(intent) ||
+                occasion.includes(intent) ||
+                profile.includes(intent);
+        }
+
+        return matchesSearch && matchesCategory && matchesLocation && matchesStatus && matchesMinPrice && matchesMaxPrice && matchesIntent;
     }).sort((a, b) => {
         if (!sortConfig) return 0;
         const { field, direction } = sortConfig;
@@ -616,11 +837,102 @@ const InventoryManager: React.FC = () => {
                             <Table size={18} />
                         </button>
                     </div>
+                    <button
+                        className="btn"
+                        style={{ backgroundColor: '#f0f4ff', color: '#4338ca', border: '1px solid #c7d2fe', display: 'flex', alignItems: 'center', gap: '8px' }}
+                        onClick={() => setShowCommercialDashboard(true)}
+                    >
+                        <Target size={18} /> Dashboard de Oportunidades
+                    </button>
                     <button className="btn btn-primary" onClick={() => setIsAddModalOpen(true)}>
                         <Plus size={20} /> Alta de Pieza
                     </button>
                 </div>
             </header>
+
+            {/* SECCIÓN ASISTENTE DE VENTAS (MODAL O BARRA DEDICADA) */}
+            <div className="glass-card" style={{
+                marginBottom: '32px',
+                padding: '24px',
+                backgroundColor: isSalesAssistantActive ? 'var(--primary)' : 'white',
+                border: '1px solid var(--primary)',
+                transition: 'all 0.3s ease'
+            }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isSalesAssistantActive ? '16px' : 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: isSalesAssistantActive ? 'white' : 'var(--primary)' }}>
+                        <Zap size={24} />
+                        <h2 style={{ margin: 0, fontSize: '18px' }}>Asistente de Ventas & Inteligencia</h2>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '12px', color: isSalesAssistantActive ? 'rgba(255,255,255,0.8)' : 'var(--text-muted)' }}>
+                            {isSalesAssistantActive ? 'Modo Estratégico Activo' : 'Activar Modo Consultivo'}
+                        </span>
+                        <div
+                            onClick={() => setIsSalesAssistantActive(!isSalesAssistantActive)}
+                            style={{
+                                width: '50px',
+                                height: '24px',
+                                backgroundColor: isSalesAssistantActive ? '#27ae60' : '#ddd',
+                                borderRadius: '12px',
+                                position: 'relative',
+                                cursor: 'pointer',
+                                padding: '2px'
+                            }}
+                        >
+                            <div style={{
+                                width: '20px',
+                                height: '20px',
+                                backgroundColor: 'white',
+                                borderRadius: '50%',
+                                position: 'absolute',
+                                left: isSalesAssistantActive ? '28px' : '2px',
+                                transition: 'left 0.2s ease'
+                            }} />
+                        </div>
+                    </div>
+                </div>
+
+                {isSalesAssistantActive && (
+                    <div style={{ display: 'flex', gap: '16px', animation: 'fadeIn 0.3s ease' }}>
+                        <div style={{ flex: 1, position: 'relative' }}>
+                            <Search style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.6)' }} size={20} />
+                            <input
+                                type="text"
+                                className="form-control"
+                                placeholder="Busca por intención: 'Aniversario', 'Minimalista', 'Protección', 'Graduación'..."
+                                style={{
+                                    paddingLeft: '48px',
+                                    height: '52px',
+                                    backgroundColor: 'rgba(255,255,255,0.15)',
+                                    border: '1px solid rgba(255,255,255,0.3)',
+                                    color: 'white',
+                                    fontSize: '16px'
+                                }}
+                                value={salesIntent}
+                                onChange={e => setSalesIntent(e.target.value)}
+                            />
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                            {['Nupcial', 'Juvenil', 'Alta Joyería', 'Daily Wear'].map(line => (
+                                <button
+                                    key={line}
+                                    className="btn"
+                                    onClick={() => setSalesIntent(line)}
+                                    style={{
+                                        backgroundColor: salesIntent === line ? 'white' : 'rgba(255,255,255,0.1)',
+                                        color: salesIntent === line ? 'var(--primary)' : 'white',
+                                        border: 'none',
+                                        fontSize: '12px',
+                                        fontWeight: 700
+                                    }}
+                                >
+                                    {line}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
 
             {/* Filters Bar */}
             <div className="glass-card" style={{ padding: '16px 24px', marginBottom: '32px', display: 'flex', gap: '20px', alignItems: 'center' }}>
@@ -666,6 +978,10 @@ const InventoryManager: React.FC = () => {
                         </button>
                     </div>
                     <div style={{ display: 'flex', gap: '20px' }}>
+                        <button className="bulk-btn" style={{ backgroundColor: '#fdf2f2', color: 'var(--primary)', borderColor: '#fee2e2' }} onClick={() => setShowBulkTagging(true)}>
+                            <Sparkles size={18} />
+                            <span>Estrategia IA</span>
+                        </button>
                         <button className="bulk-btn" title="Cambiar Ubicación/Estado">
                             <MapPin size={18} />
                             <span>Mover</span>
@@ -1068,6 +1384,270 @@ const InventoryManager: React.FC = () => {
                                 </div>
                             </div>
 
+                            {/* MÓDULO DE ESTRATEGIA COMERCIAL */}
+                            <div style={{ marginTop: '40px', padding: '32px', border: '1px solid #e0e0e0', borderRadius: '16px', backgroundColor: '#fdfdfd' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
+                                    <Target size={24} color="var(--primary)" />
+                                    <h3 style={{ margin: 0 }}>Estrategia Comercial e Inteligencia</h3>
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '24px' }}>
+                                    <div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                            <label style={{ margin: 0, fontWeight: 600, fontSize: '13px' }}>Línea Comercial</label>
+                                            <button
+                                                type="button"
+                                                onClick={() => { setManagedDomain({ id: 'dom_linea', name: 'Línea Comercial' }); setIsDomainModalOpen(true); }}
+                                                style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: 0 }}
+                                            >
+                                                <Settings size={14} />
+                                            </button>
+                                        </div>
+                                        <select
+                                            className="form-control"
+                                            value={formData.commercialLine}
+                                            onChange={e => setFormData({ ...formData, commercialLine: e.target.value })}
+                                            style={{ width: '100%' }}
+                                        >
+                                            <option value="">Seleccione línea...</option>
+                                            {lineValues.map(v => <option key={v.id} value={v.value}>{v.value}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                            <label style={{ margin: 0, fontWeight: 600, fontSize: '13px' }}>Colección</label>
+                                            <button
+                                                type="button"
+                                                onClick={() => { setManagedDomain({ id: 'dom_coleccion', name: 'Colecciones' }); setIsDomainModalOpen(true); }}
+                                                style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: 0 }}
+                                            >
+                                                <Settings size={14} />
+                                            </button>
+                                        </div>
+                                        <select
+                                            className="form-control"
+                                            value={formData.collection}
+                                            onChange={e => setFormData({ ...formData, collection: e.target.value })}
+                                            style={{ width: '100%' }}
+                                        >
+                                            <option value="">Seleccione colección...</option>
+                                            {collectionValues.map(v => <option key={v.id} value={v.value}>{v.value}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                            <label style={{ margin: 0, fontWeight: 600, fontSize: '13px' }}>Perfil de Cliente</label>
+                                            <button
+                                                type="button"
+                                                onClick={() => { setManagedDomain({ id: 'dom_perfil_cli', name: 'Perfiles de Cliente' }); setIsDomainModalOpen(true); }}
+                                                style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: 0 }}
+                                            >
+                                                <Plus size={14} />
+                                            </button>
+                                        </div>
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', padding: '8px', border: '1px solid #ddd', borderRadius: '8px', minHeight: '42px', backgroundColor: 'white' }}>
+                                            {profileValues.map(v => (
+                                                <div
+                                                    key={v.id}
+                                                    onClick={() => {
+                                                        const current = formData.customerProfile || [];
+                                                        const next = current.includes(v.value)
+                                                            ? current.filter(p => p !== v.value)
+                                                            : [...current, v.value];
+                                                        setFormData({ ...formData, customerProfile: next });
+                                                    }}
+                                                    style={{
+                                                        padding: '4px 10px',
+                                                        borderRadius: '15px',
+                                                        fontSize: '11px',
+                                                        cursor: 'pointer',
+                                                        backgroundColor: formData.customerProfile?.includes(v.value) ? 'var(--primary)' : '#f0f2f5',
+                                                        color: formData.customerProfile?.includes(v.value) ? 'white' : '#555',
+                                                        transition: 'all 0.2s'
+                                                    }}
+                                                >
+                                                    {v.value}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginTop: '20px' }}>
+                                    <div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                            <label style={{ margin: 0, fontWeight: 600, fontSize: '13px' }}>Simbología (Tags)</label>
+                                            <button
+                                                type="button"
+                                                onClick={() => { setManagedDomain({ id: 'dom_simbol', name: 'Simbologías' }); setIsDomainModalOpen(true); }}
+                                                style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: 0 }}
+                                            >
+                                                <Plus size={14} />
+                                            </button>
+                                        </div>
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', padding: '8px', border: '1px solid #ddd', borderRadius: '8px', minHeight: '42px', backgroundColor: 'white' }}>
+                                            {symbologyValues.map(v => (
+                                                <div
+                                                    key={v.id}
+                                                    onClick={() => {
+                                                        const current = formData.symbology || [];
+                                                        const next = current.includes(v.value)
+                                                            ? current.filter(p => p !== v.value)
+                                                            : [...current, v.value];
+                                                        setFormData({ ...formData, symbology: next });
+                                                    }}
+                                                    style={{
+                                                        padding: '4px 10px',
+                                                        borderRadius: '15px',
+                                                        fontSize: '11px',
+                                                        cursor: 'pointer',
+                                                        backgroundColor: formData.symbology?.includes(v.value) ? 'var(--accent)' : '#f0f2f5',
+                                                        color: formData.symbology?.includes(v.value) ? 'white' : '#555',
+                                                        transition: 'all 0.2s'
+                                                    }}
+                                                >
+                                                    {v.value}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                            <label style={{ margin: 0, fontWeight: 600, fontSize: '13px' }}>Ocasión / Motivo</label>
+                                            <button
+                                                type="button"
+                                                onClick={() => { setManagedDomain({ id: 'dom_ocasion', name: 'Ocasiones' }); setIsDomainModalOpen(true); }}
+                                                style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: 0 }}
+                                            >
+                                                <Plus size={14} />
+                                            </button>
+                                        </div>
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', padding: '8px', border: '1px solid #ddd', borderRadius: '8px', minHeight: '42px', backgroundColor: 'white' }}>
+                                            {occasionValues.map(v => (
+                                                <div
+                                                    key={v.id}
+                                                    onClick={() => {
+                                                        const current = formData.occasion || [];
+                                                        const next = current.includes(v.value)
+                                                            ? current.filter(p => p !== v.value)
+                                                            : [...current, v.value];
+                                                        setFormData({ ...formData, occasion: next });
+                                                    }}
+                                                    style={{
+                                                        padding: '4px 10px',
+                                                        borderRadius: '15px',
+                                                        fontSize: '11px',
+                                                        cursor: 'pointer',
+                                                        backgroundColor: formData.occasion?.includes(v.value) ? '#9b59b6' : '#f0f2f5',
+                                                        color: formData.occasion?.includes(v.value) ? 'white' : '#555',
+                                                        transition: 'all 0.2s'
+                                                    }}
+                                                >
+                                                    {v.value}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* MÓDULO DE COPYWRITING IA */}
+                            <div style={{ marginTop: '24px', padding: '32px', border: '1px solid #e0e0e0', borderRadius: '16px', backgroundColor: '#f8f9ff' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                        <Sparkles size={24} color="#6366f1" />
+                                        <h3 style={{ margin: 0, color: '#4338ca' }}>Copywriting & Marketing IA</h3>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        className="btn btn-primary"
+                                        onClick={handleManualAICopywriting}
+                                        disabled={isGeneratingAI}
+                                        style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', backgroundColor: '#6366f1', border: 'none' }}
+                                    >
+                                        {isGeneratingAI ? (
+                                            <>
+                                                <RotateCcw size={16} className="spin" />
+                                                Generando...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Sparkles size={16} />
+                                                Generar con IA
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+
+                                <div style={{ marginBottom: '24px' }}>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', fontWeight: 600 }}>
+                                        <Share2 size={16} /> Social Media Copy (Instagram/FB)
+                                    </label>
+                                    <textarea
+                                        rows={4}
+                                        className="form-control"
+                                        value={formData.socialDescription}
+                                        onChange={e => setFormData({ ...formData, socialDescription: e.target.value })}
+                                        placeholder="Caption generado para RRSS..."
+                                        style={{ width: '100%', borderRadius: '12px', border: '1px solid #c7d2fe' }}
+                                    />
+                                </div>
+
+                                <label style={{ display: 'block', marginBottom: '16px', fontWeight: 600 }}>Ficha Técnica Enriquecida</label>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                    <div>
+                                        <span style={{ fontSize: '12px', fontWeight: 600, color: '#666' }}>1. Diseño y Estructura</span>
+                                        <textarea
+                                            rows={3}
+                                            className="form-control"
+                                            value={formData.detailedDescription.design}
+                                            onChange={e => setFormData({ ...formData, detailedDescription: { ...formData.detailedDescription, design: e.target.value } })}
+                                            style={{ width: '100%', marginTop: '4px' }}
+                                        />
+                                    </div>
+                                    <div>
+                                        <span style={{ fontSize: '12px', fontWeight: 600, color: '#666' }}>2. Detalles de la Pieza</span>
+                                        <textarea
+                                            rows={3}
+                                            className="form-control"
+                                            value={formData.detailedDescription.details}
+                                            onChange={e => setFormData({ ...formData, detailedDescription: { ...formData.detailedDescription, details: e.target.value } })}
+                                            style={{ width: '100%', marginTop: '4px' }}
+                                        />
+                                    </div>
+                                    <div>
+                                        <span style={{ fontSize: '12px', fontWeight: 600, color: '#666' }}>3. Materiales y Acabados</span>
+                                        <textarea
+                                            rows={3}
+                                            className="form-control"
+                                            value={formData.detailedDescription.materials}
+                                            onChange={e => setFormData({ ...formData, detailedDescription: { ...formData.detailedDescription, materials: e.target.value } })}
+                                            style={{ width: '100%', marginTop: '4px' }}
+                                        />
+                                    </div>
+                                    <div>
+                                        <span style={{ fontSize: '12px', fontWeight: 600, color: '#666' }}>4. Especificaciones Técnicas</span>
+                                        <textarea
+                                            rows={3}
+                                            className="form-control"
+                                            value={formData.detailedDescription.technicalSpecs}
+                                            onChange={e => setFormData({ ...formData, detailedDescription: { ...formData.detailedDescription, technicalSpecs: e.target.value } })}
+                                            style={{ width: '100%', marginTop: '4px' }}
+                                        />
+                                    </div>
+                                </div>
+                                <div style={{ marginTop: '20px' }}>
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, color: '#666' }}>
+                                        <Heart size={14} /> 5. Simbolismo de la Pieza
+                                    </span>
+                                    <textarea
+                                        rows={3}
+                                        className="form-control"
+                                        value={formData.detailedDescription.symbolism}
+                                        onChange={e => setFormData({ ...formData, detailedDescription: { ...formData.detailedDescription, symbolism: e.target.value } })}
+                                        style={{ width: '100%', marginTop: '4px' }}
+                                    />
+                                </div>
+                            </div>
+
                             <div style={{ marginTop: '40px', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
                                 <button type="button" className="btn" onClick={() => setIsAddModalOpen(false)}>Cancelar</button>
                                 <button type="submit" className="btn btn-primary" style={{ padding: '12px 32px' }}>
@@ -1245,7 +1825,7 @@ const InventoryManager: React.FC = () => {
                                 </div>
                                 <div style={{ textAlign: 'right' }}>
                                     <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--primary)' }}>
-                                        {selectedDetailItem.salePrice?.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}
+                                        {(selectedDetailItem.salePrice || 0).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}
                                     </div>
                                     <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>PVP Estimado</span>
                                 </div>
@@ -1277,7 +1857,7 @@ const InventoryManager: React.FC = () => {
                                     <div style={{ fontSize: '18px', fontWeight: 800, color: '#e67e22' }}>€</div>
                                     <div>
                                         <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>COSTE</div>
-                                        <div style={{ fontSize: '13px', fontWeight: 600 }}>{selectedDetailItem.purchasePrice?.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</div>
+                                        <div style={{ fontSize: '13px', fontWeight: 600 }}>{(selectedDetailItem.purchasePrice || 0).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</div>
                                     </div>
                                 </div>
                             </div>
@@ -1285,6 +1865,53 @@ const InventoryManager: React.FC = () => {
                             <div style={{ marginBottom: '32px' }}>
                                 <h4 style={{ fontSize: '14px', marginBottom: '12px', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Descripción Técnica</h4>
                                 <p style={{ fontSize: '15px', lineHeight: '1.6', color: '#444' }}>{selectedDetailItem.description}</p>
+                            </div>
+
+                            {/* NUEVA SECCIÓN: STORYTELLING Y MARKETING */}
+                            <div className="glass-card" style={{ marginBottom: '32px', padding: '24px', backgroundColor: '#f8f9ff', border: '1px solid #e0e7ff' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                                    <Sparkles size={20} color="#4f46e5" />
+                                    <h4 style={{ fontSize: '14px', margin: 0, color: '#4338ca', textTransform: 'uppercase' }}>Marketing & Storytelling</h4>
+                                </div>
+
+                                {selectedDetailItem.socialDescription && (
+                                    <div style={{ marginBottom: '20px', padding: '12px', backgroundColor: 'white', borderRadius: '8px', border: '1px dashed #c7d2fe' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                            <span style={{ fontSize: '11px', fontWeight: 700, color: '#6366f1' }}>SOCIAL MEDIA COPY</span>
+                                            <button className="btn-icon" onClick={() => navigator.clipboard.writeText(selectedDetailItem.socialDescription || '')}>
+                                                <Copy size={12} />
+                                            </button>
+                                        </div>
+                                        <p style={{ fontSize: '13px', margin: 0, fontStyle: 'italic', color: '#444' }}>{selectedDetailItem.socialDescription}</p>
+                                    </div>
+                                )}
+
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '20px' }}>
+                                    {selectedDetailItem.commercialLine && (
+                                        <span style={{ padding: '4px 10px', backgroundColor: '#4338ca', color: 'white', borderRadius: '20px', fontSize: '11px', fontWeight: 600 }}>
+                                            {selectedDetailItem.commercialLine}
+                                        </span>
+                                    )}
+                                    {selectedDetailItem.occasion?.map(occ => (
+                                        <span key={occ} style={{ padding: '4px 10px', backgroundColor: '#e0e7ff', color: '#4338ca', borderRadius: '20px', fontSize: '11px', fontWeight: 600 }}>
+                                            <Zap size={10} style={{ marginRight: '4px' }} /> {occ}
+                                        </span>
+                                    ))}
+                                    {selectedDetailItem.customerProfile?.map(prof => (
+                                        <span key={prof} style={{ padding: '4px 10px', backgroundColor: '#fef3c7', color: '#92400e', borderRadius: '20px', fontSize: '11px', fontWeight: 600 }}>
+                                            <Users size={10} style={{ marginRight: '4px' }} /> {prof}
+                                        </span>
+                                    ))}
+                                </div>
+
+                                {selectedDetailItem.detailedDescription?.symbolism && (
+                                    <div style={{ padding: '12px', backgroundColor: '#fff5f5', borderRadius: '8px', borderLeft: '3px solid #f87171' }}>
+                                        <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 700, color: '#dc2626', marginBottom: '6px' }}>
+                                            <Heart size={14} /> SIMBOLOGÍA E HISTORIA
+                                        </span>
+                                        <p style={{ fontSize: '13px', margin: 0, color: '#7f1d1d' }}>{selectedDetailItem.detailedDescription.symbolism}</p>
+                                    </div>
+                                )}
                             </div>
 
                             <div style={{ marginBottom: '32px', padding: '16px', backgroundColor: '#fdf7e6', borderRadius: '8px', borderLeft: '4px solid #f39c12' }}>
@@ -1300,7 +1927,7 @@ const InventoryManager: React.FC = () => {
                                 <div>
                                     <h4 style={{ fontSize: '14px', marginBottom: '12px', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Especificaciones</h4>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                                        {Object.entries(selectedDetailItem.attributes).map(([key, value]) => {
+                                        {Object.entries(selectedDetailItem.attributes || {}).map(([key, value]) => {
                                             const attr = allAttributes.find(a => a.id === key);
                                             return (
                                                 <div key={key} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f1f1f1' }}>
@@ -1314,17 +1941,75 @@ const InventoryManager: React.FC = () => {
                             )}
                         </div>
 
-                        <div style={{ padding: '24px 40px', borderTop: '1px solid #eee', display: 'flex', gap: '12px' }}>
-                            <button
-                                className="btn btn-primary"
-                                style={{ flex: 1, justifyContent: 'center' }}
-                                onClick={() => handleEdit(selectedDetailItem)}
+                        <div style={{ padding: '24px 40px', borderTop: '1px solid #eee', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            <div style={{ display: 'flex', gap: '12px' }}>
+                                <button
+                                    className="btn btn-primary"
+                                    style={{ flex: 1, justifyContent: 'center' }}
+                                    onClick={() => handleEdit(selectedDetailItem)}
+                                >
+                                    Editar Ficha
+                                </button>
+                                <button className="btn" style={{ flex: 1, justifyContent: 'center', border: '1px solid #ddd' }}>
+                                    Ver Historial
+                                </button>
+                            </div>
+                            {selectedDetailItem.statusId === 'stat_available' && (
+                                <button
+                                    className="btn"
+                                    style={{ width: '100%', backgroundColor: '#fff8e1', border: '1px solid #ffe082', color: '#856404', fontWeight: 700 }}
+                                    onClick={handleOpenReservation}
+                                >
+                                    <Clock size={16} /> Apartar Pieza
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal de Reserva */}
+            {isReservationModalOpen && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    zIndex: 2000, backdropFilter: 'blur(4px)'
+                }}>
+                    <div className="glass-card" style={{ padding: '32px', width: '450px', backgroundColor: 'white' }}>
+                        <h2 style={{ marginBottom: '24px' }}>Realizar Apartado</h2>
+
+                        <div style={{ marginBottom: '20px' }}>
+                            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600 }}>Seleccionar Cliente</label>
+                            <select
+                                className="form-control"
+                                value={selectedCustomerId}
+                                onChange={e => setSelectedCustomerId(e.target.value)}
+                                style={{ width: '100%' }}
                             >
-                                Editar Ficha
-                            </button>
-                            <button className="btn" style={{ flex: 1, justifyContent: 'center', border: '1px solid #ddd' }}>
-                                Ver Historial
-                            </button>
+                                <option value="">Elija un cliente...</option>
+                                {customersList.map(c => (
+                                    <option key={c.id} value={c.id}>{c.firstName} {c.lastName} ({c.dni})</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div style={{ marginBottom: '32px' }}>
+                            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600 }}>Fecha de Vencimiento</label>
+                            <input
+                                type="date"
+                                className="form-control"
+                                value={reservationExpiry}
+                                onChange={e => setReservationExpiry(e.target.value)}
+                                style={{ width: '100%' }}
+                            />
+                            <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '8px' }}>
+                                La pieza se marcará como CADUCADA automáticamente en esta fecha.
+                            </p>
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                            <button className="btn" onClick={() => setIsReservationModalOpen(false)}>Cancelar</button>
+                            <button className="btn btn-primary" onClick={handleCreateReservation}>Crear Apartado</button>
                         </div>
                     </div>
                 </div>
@@ -1371,6 +2056,110 @@ const InventoryManager: React.FC = () => {
                 }
                 `}
             </style>
+            {/* Dashboard Comercial */}
+            {showCommercialDashboard && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: '#fff', zIndex: 3000, overflowY: 'auto'
+                }}>
+                    <CommercialDashboard
+                        onClose={() => setShowCommercialDashboard(false)}
+                        onSelectItem={(item) => {
+                            setShowCommercialDashboard(false);
+                            setSelectedDetailItem(item);
+                        }}
+                    />
+                </div>
+            )}
+
+            {/* Modal de Etiquetado Masivo */}
+            {showBulkTagging && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    zIndex: 2500, backdropFilter: 'blur(4px)'
+                }}>
+                    <div className="glass-card" style={{ padding: '32px', width: '500px', backgroundColor: 'white' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                            <h2 style={{ margin: 0 }}>Etiquetado Masivo ({selectedItems.length} piezas)</h2>
+                            <button className="btn" onClick={() => setShowBulkTagging(false)}><X size={20} /></button>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600 }}>Línea Comercial</label>
+                                <select
+                                    className="form-control"
+                                    value={bulkTags.commercialLine}
+                                    onChange={e => setBulkTags({ ...bulkTags, commercialLine: e.target.value })}
+                                    style={{ width: '100%' }}
+                                >
+                                    <option value="">No cambiar</option>
+                                    <option value="Nupcial">Nupcial</option>
+                                    <option value="Juvenil">Juvenil</option>
+                                    <option value="Alta Joyería">Alta Joyería</option>
+                                    <option value="Daily Wear">Daily Wear</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600 }}>Añadir Ocasiones (separadas por coma)</label>
+                                <input
+                                    type="text"
+                                    className="form-control"
+                                    placeholder="Ej: Compromiso, Boda..."
+                                    style={{ width: '100%' }}
+                                    onChange={e => setBulkTags({ ...bulkTags, occasion: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
+                                />
+                            </div>
+
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600 }}>Añadir Simbología (separadas por coma)</label>
+                                <input
+                                    type="text"
+                                    className="form-control"
+                                    placeholder="Ej: Amor, Infinito..."
+                                    style={{ width: '100%' }}
+                                    onChange={e => setBulkTags({ ...bulkTags, symbology: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
+                                />
+                            </div>
+                        </div>
+
+                        <div style={{ marginTop: '32px', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                            <button className="btn" onClick={() => setShowBulkTagging(false)}>Cancelar</button>
+                            <button className="btn btn-primary" onClick={async () => {
+                                try {
+                                    for (const itemId of selectedItems) {
+                                        const item = items.find(i => i.id === itemId);
+                                        if (item) {
+                                            await InventoryService.update(itemId, {
+                                                commercialLine: bulkTags.commercialLine || item.commercialLine,
+                                                occasion: [...new Set([...(item.occasion || []), ...bulkTags.occasion])],
+                                                symbology: [...new Set([...(item.symbology || []), ...bulkTags.symbology])]
+                                            });
+                                        }
+                                    }
+                                    await loadData();
+                                    setShowBulkTagging(false);
+                                    setSelectedItems([]);
+                                    alert(`Se han actualizado ${selectedItems.length} piezas.`);
+                                } catch (error) {
+                                    console.error("Error en etiquetado masivo:", error);
+                                    alert("Error al actualizar las piezas.");
+                                }
+                            }}>Aplicar a seleccionados</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <DomainManagerModal
+                isOpen={isDomainModalOpen}
+                onClose={() => setIsDomainModalOpen(false)}
+                domainId={managedDomain.id}
+                domainName={managedDomain.name}
+                onUpdate={fetchCommercialMasters}
+            />
         </div>
     );
 };

@@ -5,9 +5,11 @@ import DomainAttributeManager from './components/DomainAttributeManager';
 import LocationStatusManager from './components/LocationStatusManager';
 import InventoryManager from './components/InventoryManager';
 import ClassificationControlTower from './components/ClassificationControlTower';
+import CustomerManager from './components/CustomerManager';
+import ReservationBandeja from './components/ReservationBandeja';
 
 function App() {
-    const [activeTab, setActiveTab] = useState<'inventory' | 'attributes' | 'logistics' | 'classification_config'>('inventory');
+    const [activeTab, setActiveTab] = useState<'inventory' | 'attributes' | 'logistics' | 'classification_config' | 'customers' | 'reservations'>('inventory');
 
     return (
         <div className="app-shell" style={{ minHeight: '100vh', backgroundColor: '#fdfdfd' }}>
@@ -42,6 +44,28 @@ function App() {
                             }}
                         >
                             Inventario
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('customers')}
+                            style={{
+                                background: 'none', border: 'none', fontFamily: 'Outfit', fontWeight: 600, fontSize: '13px',
+                                color: activeTab === 'customers' ? 'var(--accent)' : 'var(--text-muted)', cursor: 'pointer',
+                                borderBottom: activeTab === 'customers' ? '2px solid var(--accent)' : '2px solid transparent',
+                                padding: '4px 0', transition: 'all 0.2s'
+                            }}
+                        >
+                            Clientes
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('reservations')}
+                            style={{
+                                background: 'none', border: 'none', fontFamily: 'Outfit', fontWeight: 600, fontSize: '13px',
+                                color: activeTab === 'reservations' ? 'var(--accent)' : 'var(--text-muted)', cursor: 'pointer',
+                                borderBottom: activeTab === 'reservations' ? '2px solid var(--accent)' : '2px solid transparent',
+                                padding: '4px 0', transition: 'all 0.2s'
+                            }}
+                        >
+                            Apartados
                         </button>
                         <button
                             onClick={() => setActiveTab('classification_config')}
@@ -82,6 +106,8 @@ function App() {
 
             <main style={{ paddingTop: '40px' }}>
                 {activeTab === 'inventory' && <InventoryManager />}
+                {activeTab === 'customers' && <CustomerManager />}
+                {activeTab === 'reservations' && <ReservationBandeja />}
                 {activeTab === 'classification_config' && <ClassificationControlTower />}
                 {activeTab === 'attributes' && <DomainAttributeManager />}
                 {activeTab === 'logistics' && <LocationStatusManager />}

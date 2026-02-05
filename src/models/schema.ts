@@ -184,8 +184,23 @@ export interface InventoryItem {
     // Multimedia
     images: string[];
 
-    // Notas Adicionales
+    // Notas Adicionales y Copywriting
     comments?: string;
+    socialDescription?: string;
+    detailedDescription?: {
+        design?: string;
+        details?: string;
+        materials?: string;
+        technicalSpecs?: string;
+        symbolism?: string;
+    };
+
+    // Estrategia Comercial (Módulo de Inteligencia)
+    commercialLine?: string;    // Dropdown: Nupcial, Juvenil, Alta Joyería, Daily Wear
+    collection?: string;        // "Corazones Eternos", etc.
+    symbology?: string[];       // Tags: Amor, Infinito, Protección, etc.
+    occasion?: string[];        // Tags: 15 Años, Compromiso, Graduación, etc.
+    customerProfile?: string[]; // Tags: Romántico, Minimalista, Clásico, etc.
 
     // Auditoría
     isActive: boolean;
@@ -258,4 +273,19 @@ export interface WorkshopOrder {
     cost?: number;
     createdAt: Date;
     createdBy: string;
+}
+
+// Calendario Comercial y Eventos (Módulo de Inteligencia)
+export interface CommercialEvent {
+    id: string;
+    name: string;
+    triggerDate: {
+        day: number;
+        month: number; // 1-12
+    };
+    priorityDays: number; // Días antes del evento para activar prioridad
+    targetSymbology?: string[];
+    targetOccasion?: string[];
+    targetProfile?: string[];
+    isActive: boolean;
 }

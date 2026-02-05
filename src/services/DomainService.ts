@@ -25,7 +25,12 @@ const initialDomains: Domain[] = [
     { id: 'dom_ubicacion', code: 'UBICACION', name: 'Ubicación Actual', type: 'SEMI_CLOSED', isActive: true, createdAt: new Date(), createdBy: 'system' },
     { id: 'dom_iva', code: 'IVA', name: 'IVA Aplicable', type: 'CLOSED', isActive: true, createdAt: new Date(), createdBy: 'system' },
     { id: 'dom_tipo_conjunto', code: 'TIPO_CONJUNTO', name: 'Tipo de Conjunto', type: 'CLOSED', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'dom_motivo', code: 'MOTIVO_ESPECIAL', name: 'Motivo Especial', type: 'SEMI_CLOSED', isActive: true, createdAt: new Date(), createdBy: 'system' }
+    { id: 'dom_motivo', code: 'MOTIVO_ESPECIAL', name: 'Motivo Especial', type: 'SEMI_CLOSED', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'dom_linea', code: 'COMMERCIAL_LINE', name: 'Línea Comercial', type: 'CLOSED', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'dom_coleccion', code: 'COLLECTION', name: 'Colección', type: 'SEMI_CLOSED', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'dom_perfil_cli', code: 'CUSTOMER_PROFILE', name: 'Perfil de Cliente', type: 'SEMI_CLOSED', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'dom_simbol', code: 'SYMBOLOGY', name: 'Simbología', type: 'SEMI_CLOSED', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'dom_ocasion', code: 'OCCASION', name: 'Ocasión / Motivo', type: 'SEMI_CLOSED', isActive: true, createdAt: new Date(), createdBy: 'system' }
 ];
 
 const initialValues: DomainValue[] = [
@@ -35,7 +40,26 @@ const initialValues: DomainValue[] = [
     { id: 'dv_mat_plata', domainId: 'dom_material', value: 'Plata', sortOrder: 2, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
     { id: 'dv_ley_18k', domainId: 'dom_ley', value: '18k', sortOrder: 3, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
     { id: 'dv_col_ama', domainId: 'dom_color_metal', value: 'Amarillo', sortOrder: 1, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'dv_col_bla', domainId: 'dom_color_metal', value: 'Blanco', sortOrder: 2, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' }
+    { id: 'dv_col_bla', domainId: 'dom_color_metal', value: 'Blanco', sortOrder: 2, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    // Valores Comerciales
+    { id: 'dv_line_nup', domainId: 'dom_linea', value: 'Nupcial', sortOrder: 1, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'dv_line_juv', domainId: 'dom_linea', value: 'Juvenil', sortOrder: 2, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'dv_line_alt', domainId: 'dom_linea', value: 'Alta Joyería', sortOrder: 3, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'dv_line_dai', domainId: 'dom_linea', value: 'Daily Wear', sortOrder: 4, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
+
+    { id: 'dv_sim_amo', domainId: 'dom_simbol', value: 'Amor', sortOrder: 1, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'dv_sim_inf', domainId: 'dom_simbol', value: 'Infinito', sortOrder: 2, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'dv_sim_pro', domainId: 'dom_simbol', value: 'Protección', sortOrder: 3, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
+
+    { id: 'dv_occ_com', domainId: 'dom_ocasion', value: 'Compromiso', sortOrder: 1, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'dv_occ_ani', domainId: 'dom_ocasion', value: 'Aniversario', sortOrder: 2, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'dv_occ_gra', domainId: 'dom_ocasion', value: 'Graduación', sortOrder: 3, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'dv_occ_qui', domainId: 'dom_ocasion', value: '15 Años', sortOrder: 4, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
+
+    { id: 'dv_pro_rom', domainId: 'dom_perfil_cli', value: 'Romántico', sortOrder: 1, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'dv_pro_min', domainId: 'dom_perfil_cli', value: 'Minimalista', sortOrder: 2, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'dv_pro_cla', domainId: 'dom_perfil_cli', value: 'Clásico', sortOrder: 3, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'dv_pro_tre', domainId: 'dom_perfil_cli', value: 'Trendsetter', sortOrder: 4, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' }
 ];
 
 export const DomainService = {

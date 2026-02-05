@@ -266,3 +266,33 @@ select.form-control {
 .active-sort .sort-icon {
   opacity: 1;
 }
+
+.bulk-btn {
+  background: white;
+  border: 1px solid #e0e0e0;
+  padding: 8px 16px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #444;
+}
+
+.bulk-btn:hover {
+  background: #f8f9fa;
+  border-color: var(--accent);
+  color: var(--primary);
+  transform: translateY(-1px);
+}
+
+.bulk-btn svg {
+  color: var(--text-muted);
+}
+
+.bulk-btn:hover svg {
+  color: var(--accent);
+}
