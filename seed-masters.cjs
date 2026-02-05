@@ -27,6 +27,8 @@ const initialDomains = [
     { id: 'dom_forma_piedra', code: 'FORMA_PIEDRA', name: 'Forma de la Piedra', type: 'CLOSED', isActive: true, createdAt: new Date(), createdBy: 'system' },
     { id: 'dom_acabado', code: 'ACABADO', name: 'Acabado', type: 'CLOSED', isActive: true, createdAt: new Date(), createdBy: 'system' },
     { id: 'dom_engaste', code: 'TIPO_ENGASTE', name: 'Tipo de Engaste', type: 'CLOSED', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'dom_color_diamante', code: 'COLOR_DIAMANTE', name: 'Color de Diamante (GIA)', type: 'CLOSED', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'dom_corte_diamante', code: 'CORTE_DIAMANTE', name: 'Calidad de Corte', type: 'CLOSED', isActive: true, createdAt: new Date(), createdBy: 'system' },
     { id: 'dom_iva', code: 'IVA', name: 'IVA Aplicable', type: 'CLOSED', isActive: true, createdAt: new Date(), createdBy: 'system' },
     { id: 'dom_linea', code: 'COMMERCIAL_LINE', name: 'Línea Comercial', type: 'CLOSED', isActive: true, createdAt: new Date(), createdBy: 'system' },
     { id: 'dom_coleccion', code: 'COLLECTION', name: 'Colección', type: 'SEMI_CLOSED', isActive: true, createdAt: new Date(), createdBy: 'system' },
@@ -174,7 +176,31 @@ const initialValues = [
     { id: 'dv_pu_i3', domainId: 'dom_pureza', value: 'I3', sortOrder: 11, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
     { id: 'dv_pu_aaa', domainId: 'dom_pureza', value: 'AAA', sortOrder: 12, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
     { id: 'dv_pu_aa', domainId: 'dom_pureza', value: 'AA', sortOrder: 13, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
-    { id: 'dv_pu_na', domainId: 'dom_pureza', value: 'N/A', sortOrder: 14, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' }
+    { id: 'dv_pu_na', domainId: 'dom_pureza', value: 'N/A', sortOrder: 14, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
+
+    // Color de Diamante (Escala GIA)
+    { id: 'dv_cd_d', domainId: 'dom_color_diamante', value: 'D', sortOrder: 1, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'dv_cd_e', domainId: 'dom_color_diamante', value: 'E', sortOrder: 2, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'dv_cd_f', domainId: 'dom_color_diamante', value: 'F', sortOrder: 3, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'dv_cd_g', domainId: 'dom_color_diamante', value: 'G', sortOrder: 4, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'dv_cd_h', domainId: 'dom_color_diamante', value: 'H', sortOrder: 5, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'dv_cd_i', domainId: 'dom_color_diamante', value: 'I', sortOrder: 6, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'dv_cd_j', domainId: 'dom_color_diamante', value: 'J', sortOrder: 7, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'dv_cd_k', domainId: 'dom_color_diamante', value: 'K', sortOrder: 8, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'dv_cd_l', domainId: 'dom_color_diamante', value: 'L', sortOrder: 9, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'dv_cd_m', domainId: 'dom_color_diamante', value: 'M', sortOrder: 10, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'dv_cd_nr', domainId: 'dom_color_diamante', value: 'N-R', sortOrder: 11, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'dv_cd_sz', domainId: 'dom_color_diamante', value: 'S-Z', sortOrder: 12, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'dv_cd_fc', domainId: 'dom_color_diamante', value: 'Fancy Color', sortOrder: 13, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'dv_cd_na', domainId: 'dom_color_diamante', value: 'N/A', sortOrder: 14, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
+
+    // Calidad de Corte
+    { id: 'dv_ct_ex', domainId: 'dom_corte_diamante', value: 'Excellent (EX)', sortOrder: 1, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'dv_ct_vg', domainId: 'dom_corte_diamante', value: 'Very Good (VG)', sortOrder: 2, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'dv_ct_g', domainId: 'dom_corte_diamante', value: 'Good (G)', sortOrder: 3, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'dv_ct_f', domainId: 'dom_corte_diamante', value: 'Fair (F)', sortOrder: 4, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'dv_ct_p', domainId: 'dom_corte_diamante', value: 'Poor (P)', sortOrder: 5, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'dv_ct_na', domainId: 'dom_corte_diamante', value: 'N/A', sortOrder: 6, source: 'NORMATIVE', isActive: true, createdAt: new Date(), createdBy: 'system' }
 ];
 
 const initialAttributes = [
@@ -187,6 +213,9 @@ const initialAttributes = [
     { id: 'attr_col_pie', name: 'Color de la Piedra', description: 'Tonalidad de la gema', dataType: 'LIST', domainId: 'dom_color_piedra', isActive: true, createdAt: new Date(), createdBy: 'system' },
     { id: 'attr_for_pie', name: 'Forma de la Piedra', description: 'Corte o talla de la gema', dataType: 'LIST', domainId: 'dom_forma_piedra', isActive: true, createdAt: new Date(), createdBy: 'system' },
     { id: 'attr_pureza', name: 'Pureza / Claridad', description: 'Transparencia y limpieza de la gema', dataType: 'LIST', domainId: 'dom_pureza', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'attr_col_dia', name: 'Color de Diamante (GIA)', description: 'Ausencia de color en diamantes incoloros', dataType: 'LIST', domainId: 'dom_color_diamante', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'attr_cort_dia', name: 'Calidad de Corte', description: 'Determinante del brillo y fuego del diamante', dataType: 'LIST', domainId: 'dom_corte_diamante', isActive: true, createdAt: new Date(), createdBy: 'system' },
+    { id: 'attr_pes_gem', name: 'Peso de la Gema (ct)', description: 'Peso del diamante o piedra en Quilates', dataType: 'NUMBER', isActive: true, createdAt: new Date(), createdBy: 'system' },
     { id: 'attr_tal', name: 'Talla', description: 'Tamaño de la pieza', dataType: 'NUMBER', isActive: true, createdAt: new Date(), createdBy: 'system' },
     { id: 'attr_lon', name: 'Longitud (mm)', description: 'Largo de cadena o pulsera', dataType: 'NUMBER', isActive: true, createdAt: new Date(), createdBy: 'system' },
     { id: 'attr_pes_met', name: 'Peso del Metal (gr)', description: 'Peso neto del metal', dataType: 'NUMBER', isActive: true, createdAt: new Date(), createdBy: 'system' },
@@ -212,11 +241,14 @@ const initialMappings = [
     { id: 'map_an_col_p', categoryId: 'cat_anillos', attributeId: 'attr_col_pie', isMandatory: false, sortOrder: 6 },
     { id: 'map_an_for_p', categoryId: 'cat_anillos', attributeId: 'attr_for_pie', isMandatory: false, sortOrder: 7 },
     { id: 'map_an_pur_p', categoryId: 'cat_anillos', attributeId: 'attr_pureza', isMandatory: false, sortOrder: 8 },
-    { id: 'map_an_eng', categoryId: 'cat_anillos', attributeId: 'attr_engaste', isMandatory: false, sortOrder: 9 },
-    { id: 'map_an_gra', categoryId: 'cat_anillos', attributeId: 'attr_gra_per', isMandatory: false, sortOrder: 10 },
-    { id: 'map_an_tgra', categoryId: 'cat_anillos', attributeId: 'attr_tex_gra', isMandatory: false, sortOrder: 11 },
-    { id: 'map_an_cer', categoryId: 'cat_anillos', attributeId: 'attr_cer_aut', isMandatory: false, sortOrder: 12 },
-    { id: 'map_an_iva', categoryId: 'cat_anillos', attributeId: 'attr_iva', isMandatory: true, sortOrder: 13 },
+    { id: 'map_an_cdi_p', categoryId: 'cat_anillos', attributeId: 'attr_col_dia', isMandatory: false, sortOrder: 9 },
+    { id: 'map_an_cor_p', categoryId: 'cat_anillos', attributeId: 'attr_cort_dia', isMandatory: false, sortOrder: 10 },
+    { id: 'map_an_car_p', categoryId: 'cat_anillos', attributeId: 'attr_pes_gem', isMandatory: false, sortOrder: 11 },
+    { id: 'map_an_eng', categoryId: 'cat_anillos', attributeId: 'attr_engaste', isMandatory: false, sortOrder: 12 },
+    { id: 'map_an_gra', categoryId: 'cat_anillos', attributeId: 'attr_gra_per', isMandatory: false, sortOrder: 13 },
+    { id: 'map_an_tgra', categoryId: 'cat_anillos', attributeId: 'attr_tex_gra', isMandatory: false, sortOrder: 14 },
+    { id: 'map_an_cer', categoryId: 'cat_anillos', attributeId: 'attr_cer_aut', isMandatory: false, sortOrder: 15 },
+    { id: 'map_an_iva', categoryId: 'cat_anillos', attributeId: 'attr_iva', isMandatory: true, sortOrder: 16 },
 
     // Mapeo genérico para Pendientes (cat_pendientes)
     { id: 'map_pe_mat', categoryId: 'cat_pendientes', attributeId: 'attr_mat_pri', isMandatory: true, sortOrder: 1 },
@@ -225,8 +257,9 @@ const initialMappings = [
     { id: 'map_pe_tip_p', categoryId: 'cat_pendientes', attributeId: 'attr_tip_pie', isMandatory: true, sortOrder: 4 },
     { id: 'map_pe_col_p', categoryId: 'cat_pendientes', attributeId: 'attr_col_pie', isMandatory: false, sortOrder: 5 },
     { id: 'map_pe_pur_p', categoryId: 'cat_pendientes', attributeId: 'attr_pureza', isMandatory: false, sortOrder: 6 },
-    { id: 'map_pe_eng', categoryId: 'cat_pendientes', attributeId: 'attr_engaste', isMandatory: false, sortOrder: 7 },
-    { id: 'map_pe_iva', categoryId: 'cat_pendientes', attributeId: 'attr_iva', isMandatory: true, sortOrder: 8 }
+    { id: 'map_pe_cdi_p', categoryId: 'cat_pendientes', attributeId: 'attr_col_dia', isMandatory: false, sortOrder: 7 },
+    { id: 'map_pe_eng', categoryId: 'cat_pendientes', attributeId: 'attr_engaste', isMandatory: false, sortOrder: 8 },
+    { id: 'map_pe_iva', categoryId: 'cat_pendientes', attributeId: 'attr_iva', isMandatory: true, sortOrder: 9 }
 ];
 
 async function seed() {
