@@ -12,7 +12,7 @@ import {
     getDoc,
     serverTimestamp
 } from "firebase/firestore";
-import { db } from "../../../inventario/src/firebase"; // Reusing the same firebase config
+import { db } from "@/firebase"; // Using centralized firebase config
 import { CajaDiaria, MovimientoCaja, FichaLegalCompra } from "../models/cajaSchema";
 
 const CAJAS_COLLECTION = "cajas_diarias";

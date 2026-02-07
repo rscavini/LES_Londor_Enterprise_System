@@ -1,4 +1,4 @@
-import { db } from '../firebase';
+import { db } from '@/firebase';
 import { collection, getDocs, getDoc, doc, addDoc, updateDoc, query, where, serverTimestamp, setDoc, writeBatch, deleteDoc } from 'firebase/firestore';
 import { ClassificationMapping } from '../models/schema';
 

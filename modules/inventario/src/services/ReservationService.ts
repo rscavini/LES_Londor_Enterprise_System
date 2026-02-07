@@ -11,7 +11,7 @@ import {
     Timestamp,
     writeBatch
 } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db } from '@/firebase';
 import { Reservation, ReservationStatus, InventoryItem } from '../models/schema';
 
 const COLLECTION_NAME = 'reservations';
