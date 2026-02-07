@@ -1,0 +1,377 @@
+📘 FRaD · MÓDULO CAJA
+LONDOR Enterprise System (LES)
+Documento: Functional Requirements & Architecture Description (FRaD)
+Versión: v1.0 – Draft de control
+Estado: En revisión
+Rol: Documento rector funcional
+Ámbito: 3 tiendas LONDOR (multi-tienda, datos compartidos)
+
+1. Objetivo y rol del módulo Caja
+Objetivo general
+El Módulo de Caja tiene como objetivo registrar, gobernar y trazar todos los movimientos económicos reales derivados de la actividad diaria de LONDOR, garantizando:
+Integridad financiera
+Trazabilidad legal y operativa
+Coherencia entre operación, inventario y administración
+Base fiable para contabilidad y gobierno
+Caja actúa como fuente única de verdad económica operativa, no como un mero TPV.
+
+Principio troncal
+No existe dinero sin evento funcional.
+No existe evento económico sin movimiento de Caja.
+
+2. Posición del módulo Caja en el LES
+Caja es un módulo troncal de gobierno económico, situado entre:
+Operación diaria (ventas, compras, empeños)
+Inventario (movimiento físico de piezas)
+Administración y contabilidad
+Caja valida económicamente la operación, pero no sustituye a la contabilidad ni a la fiscalidad.
+
+3. Alcance del módulo (IN / OUT)
+3.1 Alcance IN (gestionado por Caja)
+Apertura y cierre de caja por tienda y día
+Registro de:
+Cobros
+Pagos
+Entradas y salidas de efectivo
+Asociación obligatoria a:
+Ventas
+Compras a clientes (oro/piezas)
+Devoluciones
+Empeños
+Cobro de intereses
+Gestión de medios de pago
+Cuadre y arqueo diario
+Control por usuario, tienda y fecha
+
+3.2 Alcance OUT (integrado, no gestionado)
+Contabilidad general
+Fiscalidad
+Bancos
+Reporting financiero avanzado
+Caja alimenta estos sistemas mediante datos trazados y consolidados.
+
+4. Principios de gobierno del dato en Caja
+Todo movimiento de Caja tiene:
+Origen funcional
+Usuario responsable
+Fecha y hora
+Tienda
+Medio de pago
+Caja es inmutable:
+No se edita
+Se corrige mediante contra-movimiento
+Caja es auditable por diseño
+Caja es diaria y por tienda
+No existen movimientos genéricos ni libres
+
+5. Entidad troncal: Movimiento de Caja
+Cada operación económica genera un Movimiento de Caja con:
+ID único no reutilizable
+Referencia a:
+Caja diaria
+Evento funcional origen
+Tipo de movimiento
+Importe
+Sentido (Entrada / Salida)
+Medio de pago
+Usuario y timestamp
+
+6. Tipos de movimiento de Caja (nivel funcional)
+Venta
+Compra a cliente (oro / piezas)
+Devolución
+Empeño
+Cobro de intereses de empeño
+Ajuste autorizado
+Entrada manual (Admin)
+Salida manual (Admin)
+📌 Los tipos son dominio gobernado, no texto libre.
+
+7. Caja diaria por tienda
+7.1 Apertura de Caja
+Obligatoria al inicio del día
+Registra:
+Usuario
+Fecha y hora
+Saldo inicial
+Bloquea operaciones si no existe caja abierta
+
+7.2 Operación diaria
+Todo movimiento:
+Se asocia a una caja abierta
+Se vincula a un evento funcional
+No se permiten cobros o pagos fuera de caja
+
+7.3 Cierre de Caja
+Obligatorio
+Incluye:
+Totales por medio de pago
+Teórico vs real
+Diferencias documentadas
+Estado del cierre:
+Cuadrado
+Descuadrado (con observación obligatoria)
+
+8. Relación con otros módulos
+
+8.1 Venta
+Una venta no se considera cerrada sin movimiento de Caja
+Caja valida el cierre económico
+El movimiento queda trazado con:
+Venta
+Cliente
+Pieza(s)
+
+8.2 Inventario
+Toda venta:
+Genera movimiento de Caja
+Dispara cambio de estado de pieza
+Caja e Inventario quedan vinculados por ID común
+
+8.3 Compra de oro / piezas a clientes (con trazabilidad legal)
+La compra de oro o piezas a clientes es un proceso legalmente regulado, que debe quedar íntegramente trazado a nivel económico, documental y operativo.
+Alcance funcional
+Cuando se realiza una compra a un cliente, el sistema debe:
+Registrar el pago al cliente como salida de Caja
+Asociar la operación a:
+Cliente identificado
+Pieza(s) adquirida(s)
+Activar un circuito de trazabilidad legal obligatoria
+
+Ficha legal de compra (obligatoria)
+La operación debe generar una ficha legal de compra, que incluya como mínimo:
+Identificación del cliente
+Datos personales
+Documento identificativo (DNI o equivalente)
+Evidencias visuales:
+Fotografía del documento de identidad
+Fotografías de la(s) pieza(s) adquirida(s)
+Datos de la operación:
+Fecha y hora
+Tienda
+Usuario responsable
+Importe pagado
+Medio de pago
+Asociación directa con:
+Movimiento de Caja
+Registro de Inventario
+Esta ficha es obligatoria y parte del cumplimiento legal.
+
+Envío a autoridad competente
+El sistema debe contemplar el envío de la documentación a la autoridad competente (policía u organismo equivalente).
+La operación queda marcada como legalmente en custodia.
+
+Periodo de custodia legal
+Periodo reglamentario de 15 días naturales
+Durante este periodo:
+La pieza no puede venderse
+No puede transformarse
+No puede salir del control del sistema
+El estado legal es independiente del estado operativo.
+
+Liberación o incidencia
+Transcurrido el plazo sin comunicación negativa:
+La pieza queda liberada legalmente
+Pasa a estado operativo normal
+En caso de incidencia:
+La pieza queda bloqueada
+Se mantiene trazabilidad completa
+📌 La liberación legal es un evento explícito, no implícito.
+
+8.4 Empeños
+Registro de:
+Entrega inicial
+Cobro de intereses
+Recuperación
+Adjudicación
+Cada evento económico genera movimiento de Caja
+Total trazabilidad cliente–pieza–dinero
+
+9. Medios de pago
+Medios de pago soportados (dominio controlado):
+Efectivo
+Tarjeta
+Transferencia
+Bizum
+Vale / crédito interno
+Pago mixto
+
+10. Roles y permisos
+Dependienta
+Registrar cobros estándar
+Registrar pagos estándar
+Consultar caja del día (solo lectura)
+No puede:
+Ajustar
+Eliminar
+Forzar cierres
+
+Administrador
+Todas las acciones anteriores
+Ajustes documentados
+Correcciones mediante contra-movimiento
+Cierres forzados con justificación
+
+11. Reglas críticas (no negociables)
+No existe venta sin Caja
+No existe pago sin evento funcional
+No se editan movimientos
+Toda corrección es trazable
+Caja es diaria y por tienda
+
+12. Preparación para niveles posteriores
+Este FRaD deja preparados:
+Requerimientos funcionales RF-CASH
+Pantallas UX funcionales
+Casos de prueba
+Integración contable futura
+Auditoría y BI
+
+13. Cierre
+El Módulo de Caja no es un TPV, sino un pilar de gobierno económico y legal del LONDOR Enterprise System.
+Este FRaD fija el marco estable sobre el que se desarrollarán los siguientes niveles, garantizando coherencia, trazabilidad y escalabilidad.
+
+
+📎 ANEXO F-CAJA-FACT
+Frontera funcional entre Módulo Caja y Módulo Facturación
+Documento asociado: FRaD · Módulo Caja
+Rol del anexo: Gobierno de responsabilidades y límites funcionales
+Estado: Definitivo (nivel FRaD)
+
+A. Objetivo del anexo
+Definir de forma clara, explícita y no ambigua la frontera funcional entre:
+Módulo Caja (registro económico real)
+Módulo Facturación (certificación fiscal y legal)
+Este anexo actúa como contrato funcional, evitando:
+solapamientos,
+duplicidades,
+errores de diseño futuros,
+incumplimientos normativos.
+
+B. Principio rector LES
+Caja registra el dinero.
+Facturación certifica legalmente la operación.
+Ambos módulos están estrechamente coordinados, pero no mezclados.
+
+C. Responsabilidades exclusivas por módulo
+C.1 Responsabilidades del Módulo Caja
+El Módulo Caja es responsable de:
+Registrar todos los movimientos económicos reales
+Gestionar:
+Apertura y cierre diario
+Arqueo
+Cuadre
+Asociar cada movimiento a:
+Evento funcional (venta, compra, empeño…)
+Cliente (si aplica)
+Usuario
+Tienda
+Determinar si una operación:
+Requiere factura
+No requiere factura
+Disparar la emisión de factura cuando procede
+Mantener inmutabilidad de los movimientos
+📌 Caja NO:
+Calcula impuestos oficiales
+Gestiona numeración fiscal
+Emite documentos fiscales por sí sola
+
+C.2 Responsabilidades del Módulo Facturación
+El Módulo Facturación es responsable de:
+Emitir facturas oficiales
+Garantizar:
+Numeración única
+Numeración incremental y consecutiva sin saltos
+No duplicación
+No modificación
+No eliminación
+Gestionar:
+Facturas completas
+Facturas simplificadas
+Facturas rectificativas
+Integrarse con:
+Verifactu
+Sistemas fiscales futuros (SII, AEAT, etc.)
+Custodiar:
+Documentos fiscales
+Huellas digitales
+Encadenamiento fiscal
+📌 Facturación NO:
+Registra pagos reales
+Gestiona arqueos
+Modifica importes ya cobrados
+
+D. Relación operativa entre módulos (flujo)
+Flujo lógico estándar (venta con posible factura)
+[Evento funcional: Venta]
+            │
+            ▼
+     [MÓDULO CAJA]
+  ─ Registra cobro
+  ─ Medio de pago
+  ─ Usuario / tienda
+  ─ ¿Factura requerida?
+            │
+            ├── NO ──► Venta cerrada (sin factura)
+            │
+            └── SÍ
+                 ▼
+        [MÓDULO FACTURACIÓN]
+  ─ Genera factura oficial
+  ─ Asigna número fiscal
+  ─ Aplica Verifactu
+  ─ Devuelve ID de factura
+                 │
+                 ▼
+     [MÓDULO CAJA]
+  ─ Vincula factura al movimiento
+  ─ Movimiento queda cerrado
+E. Reglas de integridad entre Caja y Facturación
+Una factura ↔ un único movimiento de Caja
+Un movimiento de Caja:
+puede NO tener factura
+puede tener una sola factura
+Una factura:
+nunca se edita
+nunca se elimina
+nunca se renumera
+Errores:
+se corrigen mediante:
+factura rectificativa
+contra-movimientos de Caja
+La trazabilidad es:
+económica (Caja)
+fiscal (Facturación)
+funcional (Venta / Inventario)
+
+F. Casos especiales contemplados
+Venta sin factura → ticket o registro interno
+Venta con factura solicitada en el momento
+Emisión posterior NO permitida sin flujo reglado
+Factura rectificativa:
+genera nuevo documento fiscal
+se vincula a movimientos ya existentes
+Compra a cliente:
+puede o no requerir factura según normativa
+Caja decide, Facturación ejecuta
+
+G. Evolución futura controlada
+Este diseño permite, sin romper nada:
+Activar Verifactu obligatorio
+Integrar SII
+Cambiar normativa fiscal
+Externalizar Facturación
+Auditorías completas
+
+H. Cierre del anexo
+Con este anexo queda formalmente fijada la frontera entre Caja y Facturación, garantizando:
+Cumplimiento normativo
+Escalabilidad
+Gobierno del dato
+Coherencia LES
+Este anexo es vinculante para:
+RF
+UX
+Desarrollo
+Auditoría
+

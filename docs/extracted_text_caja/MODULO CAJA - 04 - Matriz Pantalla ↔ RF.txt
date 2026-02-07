@@ -1,0 +1,136 @@
+🧩 MATRIZ PANTALLA ↔ RF
+Proyecto: LONDOR · Módulo Caja
+Base: FRaD Caja validado + RF-CASH v1 + UX Funcional (P-CASH)
+
+🟦 P-CASH-01 · Caja del día (Resumen operativo)
+Objetivo: estado de caja + totales + alertas en 5 segundos
+Rol: Dependienta / Admin
+RF asociados:
+RF-CASH-010 · Apertura caja diaria
+RF-CASH-011 · Datos obligatorios apertura
+RF-CASH-012 · Bloqueo si no hay caja abierta
+RF-CASH-013 · Cierre de caja
+RF-CASH-014 · Arqueo y diferencias
+RF-CASH-015 · Estado cierre (cuadrado/descuadrado)
+RF-CASH-070 · Medios de pago
+RF-CASH-090 · Permisos Dependienta
+RF-CASH-092 · Permisos Admin
+
+🟦 P-CASH-02 · Apertura de caja
+Objetivo: apertura trazada con saldo inicial
+Rol: Admin (o Dependienta si se autoriza)
+RF asociados:
+RF-CASH-010
+RF-CASH-011
+RF-CASH-012
+
+🟦 P-CASH-03 · Cierre y arqueo de caja
+Objetivo: cierre + conteo + descuadres documentados
+Rol: Admin
+RF asociados:
+RF-CASH-013
+RF-CASH-014
+RF-CASH-015
+RF-CASH-100 · No editabilidad de movimientos (contexto de cierre)
+RF-CASH-101 · Corrección por nuevos movimientos
+RF-CASH-102 · Auditoría por usuario/tienda/fecha
+
+🟦 P-CASH-04 · Movimientos de Caja (Listado + filtros)
+Objetivo: auditoría operativa rápida
+Rol: Dependienta (lectura restringida) / Admin
+RF asociados:
+RF-CASH-020 · Movimiento obligatorio por evento
+RF-CASH-021 · Campos obligatorios del movimiento
+RF-CASH-022 · Prohibición de movimiento sin evento origen
+RF-CASH-030 · Tipos de movimiento soportados
+RF-CASH-031 · Tipos como dominio controlado
+RF-CASH-070 · Medios de pago
+RF-CASH-080 · Activación emisión factura desde caja (trazas)
+RF-CASH-083 · Vínculo 1:1 factura ↔ movimiento
+RF-CASH-100 · Inmutabilidad
+RF-CASH-102 · Auditoría
+RF-CASH-090 / 091 / 092 · Roles y restricciones
+
+🟦 P-CASH-05 · Movimiento de Caja (Detalle inmutable)
+Objetivo: trazabilidad completa del movimiento + links a origen + factura
+Rol: Dependienta (lectura) / Admin
+RF asociados:
+RF-CASH-020
+RF-CASH-021
+RF-CASH-022
+RF-CASH-080 · Activación facturación (visión)
+RF-CASH-082 · Reglas de integridad factura (visión)
+RF-CASH-083 · Vínculo factura ↔ movimiento
+RF-CASH-084 · Corrección por rectificativa / contra-movimiento
+RF-CASH-100
+RF-CASH-101
+RF-CASH-102
+
+🟦 P-CASH-06 · Compra a cliente (Pago + ficha legal)
+Objetivo: pago + captura legal obligatoria (DNI + fotos piezas)
+Rol: Dependienta autorizada / Admin
+RF asociados:
+RF-CASH-050 · Compra a cliente → salida caja
+RF-CASH-051 · Asociaciones obligatorias (cliente/piezas/usuario/tienda)
+RF-CASH-052 · Ficha legal obligatoria
+RF-CASH-053 · Adjuntos obligatorios (DNI + fotos)
+RF-CASH-054 · Custodia legal
+RF-CASH-055 · Bloqueos durante custodia
+RF-CASH-070 · Medio de pago
+RF-CASH-010–012 · Caja abierta (precondición)
+RF-CASH-020–022 · Movimiento trazado
+RF-CASH-100–102 · Auditoría / inmutabilidad
+
+🟦 P-CASH-07 · Ficha legal de compra (Consulta)
+Objetivo: dossier legal + estado + evidencias + vínculos
+Rol: Admin (Dependienta lectura opcional)
+RF asociados:
+RF-CASH-052
+RF-CASH-053
+RF-CASH-054
+RF-CASH-055
+RF-CASH-056 · Liberación legal explícita
+RF-CASH-102 · Auditoría
+
+🟦 P-CASH-08 · Bandeja “Custodia legal” (15 días)
+Objetivo: control operativo de custodia + liberación / incidencia
+Rol: Admin
+RF asociados:
+RF-CASH-054
+RF-CASH-055
+RF-CASH-056
+RF-CASH-092 · Permisos Admin
+RF-CASH-102 · Auditoría
+
+🟦 P-CASH-09 · Empeños (movimientos económicos vinculados)
+Objetivo: registrar eventos de empeño como movimientos de caja
+Rol: Dependienta / Admin
+RF asociados:
+RF-CASH-060 · Eventos empeño → movimientos
+RF-CASH-061 · Vínculo a cliente/pieza/contrato
+RF-CASH-020–022 · Movimiento trazado
+RF-CASH-070 · Medio de pago
+RF-CASH-090–092 · Roles
+
+🟦 P-CASH-10 · Ajustes y contra-movimientos (Admin)
+Objetivo: corregir sin editar (contra-movimiento)
+Rol: Admin
+RF asociados:
+RF-CASH-091 · Restricción dependienta (no ajustes)
+RF-CASH-092 · Permisos Admin
+RF-CASH-084 · Corrección: rectificativa / contra-movimientos
+RF-CASH-100 · No editabilidad
+RF-CASH-101 · Corrección por nuevos movimientos
+RF-CASH-102 · Auditoría completa
+
+🟦 P-CASH-11 · Factura desde venta (Modal / Step checkout)
+Objetivo: emitir factura en el momento si el cliente la solicita
+Rol: Dependienta / Admin
+RF asociados:
+RF-CASH-080 · Activación emisión factura desde flujo de caja
+RF-CASH-081 · No todos los movimientos requieren factura
+RF-CASH-082 · Reglas: no duplicación / no modificación / numeración consecutiva
+RF-CASH-083 · Factura vinculada a movimiento único
+RF-CASH-084 · Errores vía rectificativa + contra-movimientos
+RF-CASH-040 · Cobro venta → movimiento de caja
+RF-CASH-041 · Venta no cerrada sin movimiento caja

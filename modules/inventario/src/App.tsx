@@ -8,10 +8,11 @@ import ClassificationControlTower from './components/ClassificationControlTower'
 import CustomerManager from './components/CustomerManager';
 import ReservationBandeja from './components/ReservationBandeja';
 import SupplierManager from './components/SupplierManager';
+import CajaManager from '../../caja/src/components/CajaManager';
 
 
 function App() {
-    const [activeTab, setActiveTab] = useState<'inventory' | 'attributes' | 'logistics' | 'classification_config' | 'customers' | 'reservations' | 'suppliers'>('inventory');
+    const [activeTab, setActiveTab] = useState<'inventory' | 'customers' | 'reservations' | 'suppliers' | 'caja' | 'attributes' | 'logistics' | 'classification_config'>('inventory');
 
     return (
         <div className="app-shell" style={{ minHeight: '100vh', backgroundColor: '#fdfdfd' }}>
@@ -81,6 +82,18 @@ function App() {
                         >
                             Apartados
                         </button>
+
+                        <button
+                            onClick={() => setActiveTab('caja')}
+                            style={{
+                                background: 'none', border: 'none', fontFamily: 'Outfit', fontWeight: 600, fontSize: '13px',
+                                color: activeTab === 'caja' ? 'var(--accent)' : 'var(--text-muted)', cursor: 'pointer',
+                                borderBottom: activeTab === 'caja' ? '2px solid var(--accent)' : '2px solid transparent',
+                                padding: '4px 0', transition: 'all 0.2s'
+                            }}
+                        >
+                            Caja
+                        </button>
                         <button
                             onClick={() => setActiveTab('classification_config')}
                             style={{
@@ -123,6 +136,7 @@ function App() {
                 {activeTab === 'customers' && <CustomerManager />}
                 {activeTab === 'suppliers' && <SupplierManager />}
                 {activeTab === 'reservations' && <ReservationBandeja />}
+                {activeTab === 'caja' && <CajaManager />}
                 {activeTab === 'classification_config' && <ClassificationControlTower />}
                 {activeTab === 'attributes' && <DomainAttributeManager />}
                 {activeTab === 'logistics' && <LocationStatusManager />}

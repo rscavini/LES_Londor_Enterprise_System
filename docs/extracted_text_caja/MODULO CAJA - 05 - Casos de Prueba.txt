@@ -1,0 +1,304 @@
+✅ Casos de prueba (Test Cases) · Módulo Caja
+Proyecto: LONDOR · LES
+Base: RF-CASH v1 + UX P-CASH-01..11
+Formato: TC-ID · RF relacionados · Precondiciones · Pasos · Resultado esperado
+
+A) Apertura de caja (RF-CASH-010–012)
+TC-CASH-001 · Apertura correcta
+RF: 010, 011
+Pre: Usuario Admin, tienda “Diputación”, no existe caja abierta hoy.
+Pasos:
+Ir a P-CASH-02.
+Introducir saldo inicial = 200€.
+Confirmar apertura.
+Resultado esperado:
+Caja queda en estado Abierta.
+Se registra usuario + timestamp + tienda + saldo inicial.
+Navega a P-CASH-01 mostrando estado y saldo.
+
+TC-CASH-002 · Doble apertura denegada
+RF: 010, 012
+Pre: Existe caja Abierta hoy en tienda “Diputación”.
+Pasos:
+Intentar abrir caja nuevamente (P-CASH-02).
+Resultado esperado:
+Sistema impide apertura.
+Mensaje: “Ya existe caja abierta”.
+No se crea registro duplicado.
+
+TC-CASH-003 · Operación bloqueada sin caja abierta
+RF: 012
+Pre: No hay caja abierta hoy. Usuario Dependienta.
+Pasos:
+Intentar registrar una compra a cliente (P-CASH-06) o un movimiento económico.
+Resultado esperado:
+Sistema bloquea la operación.
+Mensaje claro + CTA “Abrir caja” (si rol lo permite) o “Contactar Admin”.
+
+B) Cierre y arqueo (RF-CASH-013–015)
+TC-CASH-010 · Cierre cuadrado
+RF: 013, 014, 015
+Pre: Caja abierta con movimientos del día. Admin.
+Pasos:
+Ir a P-CASH-03.
+Introducir efectivo contado igual al teórico.
+Confirmar cierre.
+Resultado esperado:
+Caja queda en estado Cerrada / Cuadrada.
+Se registran totales por medio de pago y timestamp cierre.
+
+TC-CASH-011 · Cierre descuadrado requiere motivo
+RF: 014, 015
+Pre: Caja abierta con teórico efectivo 500€. Admin.
+Pasos:
+Ir a P-CASH-03.
+Introducir efectivo contado = 480€.
+Intentar cerrar sin motivo.
+Introducir motivo y cerrar.
+Resultado esperado:
+(Paso 3) Sistema impide cierre por falta de motivo.
+(Paso 4) Permite cierre Descuadrada (documentada) con observación obligatoria.
+
+C) Movimientos de caja: obligatoriedad y estructura (RF-CASH-020–022, 030–031)
+TC-CASH-020 · Movimiento creado desde evento válido
+RF: 020, 021
+Pre: Caja abierta. Existe una venta confirmada (evento origen).
+Pasos:
+Cobrar venta (flujo de venta / P-CASH-11 si incluye factura).
+Resultado esperado:
+Se crea movimiento de Caja tipo Venta con:
+importe, sentido entrada, medio pago, usuario, tienda, timestamp.
+Movimiento queda vinculado a VentaId.
+
+TC-CASH-021 · Movimiento sin evento origen denegado
+RF: 022
+Pre: Caja abierta.
+Pasos:
+Intentar crear un movimiento manual “Venta” sin VentaId (simulado UI/API).
+Resultado esperado:
+Sistema impide creación.
+Mensaje: “Movimiento requiere evento origen”.
+
+TC-CASH-022 · Tipos de movimiento limitados a dominio
+RF: 030, 031
+Pre: Caja abierta.
+Pasos:
+Intentar registrar un tipo de movimiento no contemplado (“Donación”, por ejemplo).
+Resultado esperado:
+No aparece en selector / se rechaza.
+Solo se permiten tipos del dominio oficial.
+
+D) Venta y cierre económico (RF-CASH-040–042)
+TC-CASH-030 · Venta no cerrada sin movimiento de caja
+RF: 041
+Pre: Venta creada en sistema, caja abierta, aún sin cobro.
+Pasos:
+Intentar marcar venta como cerrada sin registrar cobro.
+Resultado esperado:
+Sistema lo impide.
+Mensaje: “Venta requiere movimiento de Caja”.
+
+TC-CASH-031 · Movimiento venta vincula cliente y piezas
+RF: 042, 021
+Pre: Venta con cliente y piezas, caja abierta.
+Pasos:
+Cobrar venta.
+Abrir P-CASH-05 (detalle movimiento).
+Resultado esperado:
+Movimiento muestra vínculo a venta, cliente y piezas (links o IDs).
+
+E) Medios de pago (RF-CASH-070)
+TC-CASH-040 · Medio de pago obligatorio y gobernado
+RF: 070, 021
+Pre: Caja abierta.
+Pasos:
+Intentar confirmar cobro sin medio de pago.
+Seleccionar medio “Tarjeta” y confirmar.
+Resultado esperado:
+(1) Sistema bloquea: medio de pago obligatorio.
+(2) Movimiento registrado correctamente con dominio controlado.
+
+F) Compra a cliente + trazabilidad legal (RF-CASH-050–056)
+TC-CASH-050 · Compra a cliente crea salida de caja
+RF: 050, 051
+Pre: Caja abierta. Cliente existente. Admin o dependienta autorizada.
+Pasos:
+Ir a P-CASH-06.
+Seleccionar cliente.
+Indicar importe 300€, medio “Efectivo”.
+Confirmar (sin adjuntar fotos aún).
+Resultado esperado:
+Sistema NO permite confirmar sin completar evidencias legales (ver TC-CASH-051).
+
+TC-CASH-051 · Evidencias legales obligatorias (DNI + fotos piezas)
+RF: 052, 053
+Pre: Caja abierta.
+Pasos:
+En P-CASH-06, completar datos base.
+Adjuntar solo foto DNI (sin fotos piezas) → confirmar.
+Adjuntar fotos piezas → confirmar.
+Resultado esperado:
+(2) Bloquea: faltan fotos de piezas.
+(3) Confirma y crea:
+Movimiento caja Salida
+Ficha legal de compra completa
+Vínculo a cliente y piezas
+
+TC-CASH-052 · Pieza en custodia legal (15 días) bloquea venta
+RF: 054, 055
+Pre: Compra a cliente confirmada; pieza asociada marcada “En custodia”.
+Pasos:
+Intentar vender la pieza durante custodia.
+Resultado esperado:
+Sistema deniega venta.
+Mensaje: “Pieza en custodia legal”.
+
+TC-CASH-053 · Bandeja de custodia muestra días restantes
+RF: 054, 056
+Pre: Existen compras en custodia con fechas distintas. Admin.
+Pasos:
+Ir a P-CASH-08.
+Resultado esperado:
+Tabla muestra días transcurridos/restantes.
+Permite abrir P-CASH-07 (ficha legal).
+
+TC-CASH-054 · Liberación legal explícita
+RF: 056
+Pre: Compra con más de 15 días transcurridos, sin incidencia. Admin.
+Pasos:
+En P-CASH-08, ejecutar “Liberar legalmente”.
+Confirmar.
+Resultado esperado:
+Se registra evento de liberación (usuario, fecha).
+La pieza deja estado legal de custodia y queda operable (según reglas de inventario).
+
+TC-CASH-055 · Incidencia impide liberación
+RF: 056
+Pre: Ficha legal marcada con incidencia/bloqueo. Admin.
+Pasos:
+Intentar liberar legalmente.
+Resultado esperado:
+Sistema impide liberación.
+Requiere resolución/incidencia cerrada (motivo obligatorio).
+
+G) Empeños (RF-CASH-060–061)
+TC-CASH-060 · Cobro de intereses genera entrada
+RF: 060, 061, 020
+Pre: Caja abierta. Contrato de empeño válido.
+Pasos:
+Ir a P-CASH-09.
+Seleccionar contrato.
+Registrar cobro de intereses 50€ por “Tarjeta”.
+Confirmar.
+Resultado esperado:
+Movimiento tipo “Cobro intereses empeño” (Entrada)
+Vínculo a contrato + cliente + pieza.
+
+H) Facturación y Verifactu (RF-CASH-080–084)
+Nota: aquí validamos comportamiento funcional, no la implementación técnica del protocolo (eso se probará en módulo Facturación + integración).
+TC-CASH-070 · Venta sin factura permitida
+RF: 081, 040
+Pre: Caja abierta, venta preparada.
+Pasos:
+Cobrar venta con “Factura solicitada = NO”.
+Resultado esperado:
+Movimiento caja creado.
+Venta cerrada sin factura.
+Movimiento no tiene FacturaId.
+
+TC-CASH-071 · Venta con factura emitida y vinculada 1:1
+RF: 080, 082, 083
+Pre: Caja abierta, cliente con datos fiscales completos (o se capturan).
+Pasos:
+Cobrar venta con “Factura solicitada = SÍ”.
+Emitir factura.
+Abrir P-CASH-05 del movimiento.
+Resultado esperado:
+Se genera FacturaId + número fiscal.
+Queda vinculado 1:1 al movimiento de caja.
+Movimiento muestra estado fiscal / Verifactu (si se expone).
+
+TC-CASH-072 · Intento de duplicación de factura denegado
+RF: 082, 083
+Pre: Movimiento con factura ya emitida.
+Pasos:
+Intentar “Emitir factura” de nuevo para el mismo movimiento.
+Resultado esperado:
+Sistema lo impide.
+Mensaje: “Ya existe factura asociada a este movimiento”.
+
+TC-CASH-073 · Corrección por rectificativa + contra-movimiento
+RF: 084, 101
+Pre: Factura emitida con error detectado. Admin.
+Pasos:
+Intentar editar factura o movimiento original.
+Ejecutar “Iniciar rectificativa” (desde P-CASH-05).
+Generar contra-movimiento (P-CASH-10) si procede.
+Resultado esperado:
+(1) Edición denegada.
+(2) Se crea flujo de rectificativa (nuevo documento fiscal).
+(3) Se crea nuevo movimiento trazado sin alterar el original.
+
+I) Roles y permisos (RF-CASH-090–092)
+TC-CASH-080 · Dependienta no puede ajustes
+RF: 091
+Pre: Usuario Dependienta, caja abierta.
+Pasos:
+Intentar acceder a P-CASH-10 (Ajustes/contra-movimientos).
+Resultado esperado:
+Denegado por permisos.
+
+TC-CASH-081 · Admin puede ajustes con motivo obligatorio
+RF: 092, 101
+Pre: Usuario Admin, existe movimiento origen.
+Pasos:
+Ir a P-CASH-10.
+Generar contra-movimiento sin motivo.
+Informar motivo y confirmar.
+Resultado esperado:
+(2) Denegado: motivo obligatorio.
+(3) Crea contra-movimiento vinculado, trazado.
+
+J) Inmutabilidad y auditoría (RF-CASH-100–102)
+TC-CASH-090 · Movimiento no editable
+RF: 100
+Pre: Existe movimiento registrado.
+Pasos:
+Intentar editar importe/medio de pago del movimiento (UI o API).
+Resultado esperado:
+Sistema lo impide.
+Mensaje: “Movimiento inmutable”.
+
+TC-CASH-091 · Corrección crea nuevo movimiento
+RF: 101
+Pre: Existe movimiento incorrecto. Admin.
+Pasos:
+Generar contra-movimiento.
+Consultar listado P-CASH-04.
+Resultado esperado:
+Aparece movimiento original + movimiento corrector.
+Ambos vinculados (origen/corrección).
+
+TC-CASH-092 · Auditoría completa por usuario/tienda/fecha
+RF: 102
+Pre: Múltiples movimientos de distintos usuarios y tiendas.
+Pasos:
+En P-CASH-04 filtrar por usuario X.
+Filtrar por tienda Y.
+Filtrar por rango de fechas.
+Resultado esperado:
+Resultados consistentes y completos.
+Cada registro conserva trazas mínimas.
+
+✅ Cierre de cobertura
+Apertura/cierre: OK
+Movimientos: OK
+Venta: OK
+Compra legal + custodia: OK
+Empeños: OK
+Facturación/Verifactu (funcional): OK
+Roles: OK
+Inmutabilidad y auditoría: OK
+
+
+

@@ -1,0 +1,230 @@
+PASO 3 — UX Funcional · Módulo Caja
+Mapa de navegación (roles)
+Menú Dependienta
+Caja del día
+Registrar movimiento (solo flujos permitidos)
+Histórico (solo lectura) (opcional según permisos)
+Emitir factura (solo dentro del flujo de venta, no como pantalla suelta)
+Menú Administrador
+Caja del día (control)
+Apertura / Cierre
+Movimientos (consulta + auditoría)
+Ajustes / Contra-movimientos
+Incidencias (descuadres, bloqueos)
+Facturas (consulta / estado Verifactu) (si se expone desde Caja)
+
+Pantallas UX (P-CASH-xx)
+🟦 P-CASH-01 · Caja del día (Resumen operativo)
+Objetivo: ver estado de caja, totales y “qué falta por hacer” en 5 segundos.
+Rol: Dependienta / Admin (con diferencias de permisos)
+Elementos visibles
+Estado: No abierta / Abierta / Cerrada
+Saldo inicial (si abierta/cerrada)
+Totales por medio de pago (Efectivo/Tarjeta/Transferencia/Bizum/Vale/Mixto)
+Total entradas / Total salidas
+Total teórico
+Alertas:
+“Caja no abierta”
+“Pendiente cierre”
+“Descuadre detectado”
+“Movimientos pendientes de justificar” (Admin)
+Acciones
+Abrir caja (si rol permite) → P-CASH-02
+Registrar cobro de venta (normalmente viene desde flujo de venta)
+Registrar pago compra cliente → P-CASH-06 (si rol permite iniciar)
+Ir a movimientos → P-CASH-04
+Cerrar caja → P-CASH-03
+RF cubiertos: 010–015, 020–022, 070, 090–092
+
+🟦 P-CASH-02 · Apertura de caja
+Objetivo: abrir la caja de una tienda con saldo inicial trazado.
+Rol: Admin (o Dependienta si se autoriza)
+Campos
+Tienda (si usuario opera en varias)
+Saldo inicial (obligatorio)
+Observaciones (opcional)
+Confirmación
+Validaciones
+Si ya existe caja abierta → no permite segunda apertura
+Registra usuario + timestamp
+Resultado
+Caja pasa a Abierta
+Navega a P-CASH-01
+RF: 010–012
+
+🟦 P-CASH-03 · Cierre y arqueo de caja
+Objetivo: cerrar caja con arqueo, diferencias y trazabilidad.
+Rol: Admin (y Dependienta solo si se autoriza)
+Secciones
+Resumen teórico
+Totales por medio de pago
+Total teórico entradas/salidas
+Total teórico final
+Conteo real
+Efectivo contado (obligatorio)
+Tarjeta (lectura; editable solo Admin si hay incidencia)
+Transferencia/Bizum/Vale (lectura; con campo “verificado”)
+Diferencias
+Diferencia calculada automáticamente
+Campo “Motivo/Observación” obligatorio si descuadre
+Acciones
+Cerrar caja (si diferencia = 0)
+Cerrar con descuadre (Admin + motivo obligatorio)
+“Marcar para revisión” (Admin)
+RF: 013–015, 100–102
+
+🟦 P-CASH-04 · Movimientos de Caja (Listado + filtros)
+Objetivo: auditoría rápida y trazabilidad operativa.
+Rol: Dependienta (lectura restringida) / Admin (completo)
+Filtros
+Fecha (por defecto: hoy)
+Tienda
+Tipo de movimiento
+Medio de pago
+Usuario
+Evento origen (Venta / Compra / Empeño / Ajuste)
+Estado factura (Con factura / Sin factura / Rectificada) (si se muestra)
+Tabla
+Hora
+Tipo
+Sentido (entrada/salida)
+Importe
+Medio pago
+Usuario
+Origen (link a Venta/Compra/Empeño)
+Factura (si existe) (link)
+Estado Verifactu (si aplica) (badge)
+Acciones
+Ver detalle → P-CASH-05
+Generar contra-movimiento → P-CASH-10 (Admin)
+RF: 020–022, 030–031, 070, 100–102, 080–084
+
+🟦 P-CASH-05 · Movimiento de Caja (Detalle inmutable)
+Objetivo: ver todo lo que explica ese movimiento y su encadenamiento.
+Rol: Dependienta (lectura) / Admin (lectura + acciones permitidas)
+Bloques
+Identificación: MovementId, CajaId, tienda, usuario, timestamp
+Económico: tipo, sentido, importe, medio pago
+Origen funcional: VentaId / CompraId / EmpeñoId / AjusteId (según)
+Factura:
+FacturaId (si existe)
+Número fiscal
+Estado Verifactu
+Evidencias / documentos asociados (links)
+Acciones
+(Admin) “Crear contra-movimiento”
+(Admin) “Iniciar rectificativa” (dispara módulo Facturación, no se emite aquí)
+RF: 020–022, 080–084, 100–102
+
+🟦 P-CASH-06 · Compra a cliente (Pago + ficha legal)
+Objetivo: registrar pago y evidencias legales de la operación.
+Rol: Dependienta autorizada / Admin
+Paso 1 — Datos base
+Cliente (buscar/crear) (obligatorio)
+Tipo compra: Oro / Pieza(s)
+Importe a pagar (obligatorio)
+Medio de pago (obligatorio)
+Observaciones
+Paso 2 — Evidencias legales
+Foto DNI (obligatoria)
+Foto(s) pieza(s) (obligatoria)
+Confirmación de consentimiento / check legal (si aplica)
+Paso 3 — Confirmación
+Resumen
+Confirmar → genera:
+Movimiento Caja (Salida)
+Ficha legal de compra
+Marcado “En custodia legal”
+Temporizador/fecha objetivo +15 días
+Validaciones
+No permite confirmar sin fotos requeridas
+No permite operar si caja no está abierta
+Asociaciones obligatorias: Cliente + Pieza(s) + Movimiento
+RF: 050–056, 070, 010–012, 020–022
+
+🟦 P-CASH-07 · Ficha legal de compra (Consulta)
+Objetivo: consultar dossier legal y su estado.
+Rol: Admin (y Dependienta solo lectura si se decide)
+Contenido
+Cliente + identificación
+Fotos DNI + fotos piezas
+Fecha/hora, tienda, usuario
+Movimiento de Caja asociado
+Piezas asociadas (links a inventario)
+Estado legal:
+En custodia (con contador de días)
+Liberada
+Incidencia / Bloqueada
+Acciones (Admin)
+Registrar “Envío a autoridad” (estado + fecha) (sin detallar canal aún)
+Marcar incidencia
+Ejecutar “Liberación legal” (evento explícito)
+RF: 052–056
+
+🟦 P-CASH-08 · Bandeja “Custodia legal” (15 días)
+Objetivo: control de piezas retenidas y liberación controlada.
+Rol: Admin
+Tabla
+Operación / Ficha legal
+Cliente
+Tienda
+Fecha compra
+Días transcurridos / Días restantes
+Estado (En custodia / Lista para liberar / Incidencia)
+Acciones
+Abrir ficha legal → P-CASH-07
+Liberar legalmente (cuando corresponda) → confirmación + log
+Bloquear por incidencia (motivo obligatorio)
+RF: 054–056
+
+🟦 P-CASH-09 · Empeños (movimientos económicos vinculados)
+Objetivo: registrar movimientos de caja asociados a eventos de empeño.
+Rol: Dependienta / Admin (según permisos)
+Subflujos
+Cobro de intereses → Entrada
+Recuperación → Entrada
+(Otros eventos si aplica)
+Elementos
+Selección contrato de empeño
+Cliente (autocompleta)
+Importe
+Medio de pago
+Confirmar → movimiento + vínculo
+RF: 060–061, 020–022, 070
+
+🟦 P-CASH-10 · Ajustes y contra-movimientos (Admin)
+Objetivo: corregir sin editar: trazabilidad perfecta.
+Rol: Admin
+Flujo
+Seleccionar movimiento origen (desde P-CASH-05 o listado)
+Tipo corrección:
+Contra-movimiento total
+Parcial (si se permite)
+Motivo (obligatorio)
+Confirmar → crea nuevo movimiento vinculado al original
+Validaciones
+Nunca modifica el original
+Deja rastro de usuario/fecha/motivo
+RF: 100–102, 084
+
+🟦 P-CASH-11 · Factura desde venta (Modal / Step en checkout)
+Objetivo: emitir factura en el momento si el cliente la pide, sin romper flujo.
+Rol: Dependienta / Admin
+UI recomendada (dentro del flujo de cobro)
+Toggle: “Cliente solicita factura: Sí/No”
+Si Sí:
+Selección/alta de cliente (datos fiscales)
+Confirmación datos
+Emitir factura (llamada a Facturación)
+Retorna: FacturaId + número + estado Verifactu
+Se muestra comprobante y se vincula al movimiento.
+Reglas visibles para el usuario
+“La factura es inmodificable. Correcciones vía rectificativa.”
+RF: 080–084
+
+Criterios UX transversales (para todo el módulo)
+Bloqueo si no hay caja abierta (mensaje claro + CTA a abrir)
+Diferenciar operación (dependienta) vs auditoría (admin)
+Todo lo “legal” y “fiscal” con badges de estado (Custodia / Verifactu)
+Inmutabilidad: no mostrar botones de “editar” movimientos nunca
+Correcciones: siempre “Generar contra-movimiento” / “Rectificativa”

@@ -1,0 +1,258 @@
+1) Datasets de prueba (DEV/QA)
+D1 · Tiendas
+STORE-DIP = “LONDOR Diputación”
+STORE-PRO = “LONDOR Provenza”
+STORE-ALM = “Almacén” (solo referencia; no caja diaria)
+D2 · Usuarios / Roles
+USR-ADM-01 = Admin (nombre: “Admin Test”)
+USR-DEP-01 = Dependienta Diputación (nombre: “Dep Test Dip”)
+USR-DEP-02 = Dependienta Provenza (nombre: “Dep Test Pro”)
+D3 · Caja diaria (plantilla por fecha)
+Usa estas fechas “controladas”:
+DAY-TODAY = hoy (fecha del entorno)
+DAY-OLD-16 = hoy - 16 días (para liberar custodia legal)
+DAY-OLD-10 = hoy - 10 días (custodia aún activa)
+Cajas a crear
+CASHBOX-DIP-TODAY (STORE-DIP): saldo inicial 200.00
+CASHBOX-PRO-TODAY (STORE-PRO): saldo inicial 150.00
+CASHBOX-DIP-OLD16 (STORE-DIP): saldo inicial 100.00 (histórica)
+CASHBOX-DIP-OLD10 (STORE-DIP): saldo inicial 100.00 (histórica)
+D4 · Clientes (incluye fiscales)
+CUST-001 “Ana Pérez”
+DNI: 00000000A (dummy)
+Fiscal OK: Sí (NIF + dirección)
+CUST-002 “Marc López”
+DNI: 00000000B (dummy)
+Fiscal OK: No (incompleto → sirve para test de captura)
+CUST-003 “Laura Gómez”
+DNI: 00000000C (dummy)
+Fiscal OK: Sí
+D5 · Piezas (referencias de inventario)
+ITEM-001 (Disponible, STORE-DIP) — “Anillo oro 18k”
+ITEM-002 (Disponible, STORE-DIP) — “Colgante plata”
+ITEM-003 (Disponible, STORE-PRO) — “Pulsera oro”
+ITEM-004 (En custodia legal, STORE-DIP) — “Anillo recompra” (se crea con compra legal DAY-OLD-10)
+ITEM-005 (En custodia legal, STORE-DIP) — “Cadena recompra” (se crea con compra legal DAY-OLD-16)
+D6 · Ventas (eventos origen)
+SALE-001 (STORE-DIP, CUST-001, piezas: ITEM-001)
+Total: 900.00
+Estado: “Preparada para cobro”
+SALE-002 (STORE-DIP, CUST-002, piezas: ITEM-002)
+Total: 120.00
+Estado: “Preparada para cobro”
+SALE-003 (STORE-PRO, CUST-003, piezas: ITEM-003)
+Total: 450.00
+Estado: “Preparada para cobro”
+D7 · Compras a cliente (oro/piezas) con ficha legal
+BUY-001 (STORE-DIP, CUST-001, piezas: ITEM-004, fecha = DAY-OLD-10)
+Importe pagado: 300.00
+Evidencias: DNI-FOTO-SÍ, PIEZA-FOTO-SÍ
+Estado legal: En custodia (NO liberable aún)
+BUY-002 (STORE-DIP, CUST-003, piezas: ITEM-005, fecha = DAY-OLD-16)
+Importe pagado: 200.00
+Evidencias: DNI-FOTO-SÍ, PIEZA-FOTO-SÍ
+Estado legal: Lista para liberar
+(Si necesitas archivos reales de imagen, se pueden simular como adjuntos “IMG-DNI-001.jpg”, “IMG-ITEM-004-1.jpg”, etc.)
+D8 · Empeños (contratos)
+PAWN-001 (STORE-DIP, CUST-001, pieza: ITEM-002)
+Interés mensual ejemplo: 50.00
+Estado: Activo
+D9 · Facturación (módulo Facturación disponible como servicio)
+Numeración inicial para pruebas:
+INV-START = F-2026-000100
+Estado Verifactu simulado:
+“OK” / “PENDIENTE” (según entorno)
+
+2) Casos de prueba por pantalla (P-CASH)
+Formato: TC-PANTALLA-XXX · Dataset · Precondiciones · Pasos · Resultado esperado
+
+🟦 P-CASH-01 · Caja del día (Resumen operativo)
+TC-P01-001 · Estado “No abierta”
+Dataset: STORE-DIP, USR-DEP-01
+Pre: No abrir CASHBOX-DIP-TODAY.
+Pasos: Entrar a “Caja del día”.
+Esperado: Estado = “No abierta”, alerta “Caja no abierta”, CTA a apertura (solo si rol lo permite).
+TC-P01-002 · Totales por medio de pago
+Dataset: CASHBOX-DIP-TODAY + movimientos (ver P-CASH-11 y P-CASH-06)
+Pre: Caja abierta y registrar:
+Cobro SALE-001 tarjeta 900
+Compra BUY-001 efectivo -300
+Pasos: Abrir “Caja del día”.
+Esperado: Totales correctos por medio, entradas/salidas correctas, total teórico correcto.
+TC-P01-003 · Visibilidad por rol
+Dataset: USR-DEP-01 vs USR-ADM-01
+Pre: Caja abierta con descuadre pendiente de justificar (ver P-CASH-03).
+Pasos: Abrir “Caja del día” con ambos roles.
+Esperado: Admin ve alertas/acciones ampliadas; Dependienta ve versión restringida.
+
+🟦 P-CASH-02 · Apertura de caja
+TC-P02-001 · Apertura OK
+Dataset: CASHBOX-DIP-TODAY
+Pre: Caja no abierta. USR-ADM-01.
+Pasos: Abrir con saldo inicial 200.
+Esperado: Caja “Abierta”, registro usuario/fecha/tienda/saldo.
+TC-P02-002 · Doble apertura denegada
+Dataset: CASHBOX-DIP-TODAY
+Pre: Caja ya abierta.
+Pasos: Intentar abrir otra vez.
+Esperado: Deniega con mensaje “Ya existe caja abierta”.
+TC-P02-003 · Dependienta sin permiso
+Dataset: USR-DEP-01
+Pre: Config permisos: Dependienta no puede abrir.
+Pasos: Intentar abrir caja.
+Esperado: Acceso denegado / botón oculto.
+
+🟦 P-CASH-03 · Cierre y arqueo
+TC-P03-001 · Cierre cuadrado
+Dataset: CASHBOX-DIP-TODAY + movimientos del día
+Pre: Caja abierta, movimientos registrados.
+Pasos: Contar efectivo = teórico, cerrar.
+Esperado: Estado “Cerrada / Cuadrada”.
+TC-P03-002 · Cierre descuadrado requiere motivo
+Dataset: CASHBOX-DIP-TODAY
+Pre: Teórico efectivo 500, contado 480.
+Pasos: Cerrar sin motivo → luego con motivo.
+Esperado: Bloquea sin motivo; permite con motivo y marca “Descuadrada (documentada)”.
+TC-P03-003 · Cierre bloquea nuevas operaciones
+Dataset: CASHBOX-DIP-TODAY
+Pre: Caja cerrada.
+Pasos: Intentar registrar compra/venta.
+Esperado: Bloqueo: “Caja cerrada”.
+
+🟦 P-CASH-04 · Movimientos (Listado + filtros)
+TC-P04-001 · Filtro por tienda y fecha
+Dataset: CASHBOX-DIP-TODAY, CASHBOX-PRO-TODAY
+Pre: Crear al menos 1 movimiento por tienda.
+Pasos: Filtrar por tienda DIP y fecha TODAY.
+Esperado: Solo movimientos DIP hoy.
+TC-P04-002 · Filtro por tipo de movimiento
+Dataset: Movimientos Venta, Compra, Intereses
+Pre: Registrar:
+Cobro SALE-001 (Venta)
+Pago BUY-001 (Compra)
+Cobro intereses PAWN-001 (Intereses)
+Pasos: Filtrar por “Compra a cliente”.
+Esperado: Solo pagos de compras.
+TC-P04-003 · Columna Factura (si existe) y estado Verifactu
+Dataset: SALE-001 con factura emitida
+Pre: Emitir factura en P-CASH-11.
+Pasos: Ver listado.
+Esperado: Movimiento muestra FacturaId/número + badge Verifactu.
+
+🟦 P-CASH-05 · Movimiento (Detalle inmutable)
+TC-P05-001 · Detalle completo y vínculos
+Dataset: Movimiento de SALE-001
+Pre: Cobro realizado.
+Pasos: Abrir detalle del movimiento desde P-CASH-04.
+Esperado: Muestra MovementId, cajaId, usuario, tienda, origen (SaleId), importe, medio pago, timestamp.
+TC-P05-002 · Inmutabilidad (sin edición)
+Dataset: Cualquier movimiento
+Pre: Movimiento existente.
+Pasos: Intentar editar importe/medio pago.
+Esperado: No existe opción de editar o se deniega.
+TC-P05-003 · Acciones Admin: contra-movimiento / rectificativa
+Dataset: Movimiento con factura emitida
+Pre: USR-ADM-01.
+Pasos: “Iniciar rectificativa” y “Crear contra-movimiento”.
+Esperado: Dispara flujo permitido sin modificar el original.
+
+🟦 P-CASH-06 · Compra a cliente (Pago + ficha legal)
+TC-P06-001 · Bloqueo por falta de fotos
+Dataset: CUST-001, ITEM-004, CASHBOX-DIP-TODAY
+Pre: Caja abierta.
+Pasos: Completar datos base, adjuntar solo DNI, confirmar.
+Esperado: Bloquea: faltan fotos piezas.
+TC-P06-002 · Compra legal OK crea todo
+Dataset: BUY-001 (o crear BUY-NEW)
+Pre: Caja abierta, cliente y pieza seleccionados, DNI+fotos OK.
+Pasos: Confirmar compra.
+Esperado: Se crea:
+Movimiento caja (Salida)
+Ficha legal
+Estado legal “En custodia”
+Temporizador 15 días
+TC-P06-003 · Bloqueo si caja no abierta
+Dataset: STORE-DIP
+Pre: Caja cerrada o no abierta.
+Pasos: Intentar confirmar compra.
+Esperado: Deniega: requiere caja abierta.
+
+🟦 P-CASH-07 · Ficha legal de compra (Consulta)
+TC-P07-001 · Visualización de evidencias
+Dataset: BUY-001
+Pre: Ficha legal existente.
+Pasos: Abrir ficha.
+Esperado: Muestra DNI + fotos piezas + cliente + importe + tienda + usuario + vínculos.
+TC-P07-002 · Registrar incidencia
+Dataset: BUY-001
+Pre: Admin.
+Pasos: Marcar incidencia con motivo.
+Esperado: Estado legal pasa a “Incidencia/Bloqueada”, queda auditado.
+TC-P07-003 · Envío a autoridad (registro)
+Dataset: BUY-001
+Pre: Admin.
+Pasos: Registrar “Enviado a autoridad” (fecha).
+Esperado: Log de envío asociado a la ficha legal.
+
+🟦 P-CASH-08 · Bandeja “Custodia legal” (15 días)
+TC-P08-001 · Lista y días restantes correctos
+Dataset: BUY-001 (10 días), BUY-002 (16 días)
+Pre: Ambos casos cargados.
+Pasos: Abrir bandeja.
+Esperado: BUY-001 = “En custodia” con días restantes; BUY-002 = “Lista para liberar”.
+TC-P08-002 · Liberación legal explícita permitida (OLD16)
+Dataset: BUY-002
+Pre: Admin, sin incidencia.
+Pasos: Liberar legalmente.
+Esperado: Cambia a “Liberada” + evento auditado; pieza deja custodia.
+TC-P08-003 · Liberación denegada si no han pasado 15 días
+Dataset: BUY-001
+Pre: Admin.
+Pasos: Intentar liberar.
+Esperado: Deniega: “Aún en periodo legal”.
+
+🟦 P-CASH-09 · Empeños
+TC-P09-001 · Cobro intereses genera entrada
+Dataset: PAWN-001, CASHBOX-DIP-TODAY
+Pre: Caja abierta.
+Pasos: Registrar intereses 50€ tarjeta.
+Esperado: Movimiento “Cobro intereses empeño” (Entrada) vinculado a PAWN-001.
+TC-P09-002 · Medio de pago obligatorio
+Dataset: PAWN-001
+Pre: Caja abierta.
+Pasos: Intentar confirmar sin medio pago.
+Esperado: Bloquea: medio obligatorio.
+
+🟦 P-CASH-10 · Ajustes y contra-movimientos (Admin)
+TC-P10-001 · Dependienta denegada
+Dataset: USR-DEP-01
+Pre: Movimiento existente.
+Pasos: Intentar acceder/ejecutar contra-movimiento.
+Esperado: Denegado por permisos.
+TC-P10-002 · Admin crea contra-movimiento con motivo obligatorio
+Dataset: Movimiento de SALE-002 (por ejemplo)
+Pre: Admin.
+Pasos: Contra-movimiento sin motivo → luego con motivo.
+Esperado: Bloquea sin motivo; crea nuevo movimiento vinculado al original con motivo auditado.
+
+🟦 P-CASH-11 · Factura desde venta (Modal/Step checkout)
+TC-P11-001 · Venta sin factura
+Dataset: SALE-002 (CUST-002 fiscal incompleto pero no pide factura)
+Pre: Caja abierta.
+Pasos: Cobrar con “Factura = NO”.
+Esperado: Movimiento creado, venta cerrada, sin FacturaId.
+TC-P11-002 · Venta con factura (captura datos fiscales si faltan)
+Dataset: SALE-002 + CUST-002 (fiscal incompleto)
+Pre: Caja abierta.
+Pasos: “Factura = SÍ” → el sistema solicita completar datos fiscales → emitir.
+Esperado: Factura emitida, número asignado, vínculo 1:1 al movimiento, estado Verifactu visible.
+TC-P11-003 · Duplicación denegada
+Dataset: SALE-001 ya facturada
+Pre: Factura emitida una vez.
+Pasos: Reintentar “Emitir factura” para el mismo movimiento.
+Esperado: Deniega: “Ya existe factura asociada”.
+TC-P11-004 · Inmutabilidad: corrección por rectificativa
+Dataset: Factura de SALE-001
+Pre: Admin.
+Pasos: Intentar editar factura → luego iniciar rectificativa.
+Esperado: No permite edición; permite flujo rectificativa (nuevo documento), sin alterar factura original.

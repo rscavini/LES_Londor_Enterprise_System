@@ -1,0 +1,177 @@
+▶️ PASO 1 — RF-CASH v1
+Requerimientos Funcionales · Módulo Caja
+Estado: Activo
+Origen: FRaD Caja VALIDADO
+Nivel: RF (accionable por desarrollo)
+Convención: RF-CASH-XXX
+
+RF-CASH-000 · Alcance y principios
+RF-CASH-000
+El presente documento define los Requerimientos Funcionales del Módulo Caja del LONDOR Enterprise System, alineados con el FRaD validado y el Anexo de frontera Caja ↔ Facturación.
+RF-CASH-001
+El módulo Caja debe actuar como fuente única de verdad económica operativa, registrando todos los movimientos económicos reales derivados de la actividad del negocio.
+
+RF-CASH-010 · Caja diaria (apertura / cierre)
+RF-CASH-010
+El sistema debe permitir la apertura de Caja diaria por tienda y usuario autorizado.
+RF-CASH-011
+La apertura de Caja debe registrar obligatoriamente:
+Usuario
+Fecha y hora
+Tienda
+Saldo inicial
+RF-CASH-012
+El sistema debe bloquear cualquier operación económica si no existe una Caja abierta para la tienda.
+
+RF-CASH-013
+El sistema debe permitir el cierre de Caja diario.
+RF-CASH-014
+El cierre de Caja debe incluir:
+Totales por medio de pago
+Total teórico
+Total contado
+Diferencia
+Observaciones obligatorias en caso de descuadre
+RF-CASH-015
+El cierre de Caja debe quedar en estado:
+Cuadrado
+Descuadrado (documentado)
+
+RF-CASH-020 · Movimientos de Caja
+RF-CASH-020
+Todo evento económico debe generar un movimiento de Caja único e inmutable.
+RF-CASH-021
+Cada movimiento de Caja debe registrar como mínimo:
+ID único
+Caja diaria
+Tipo de movimiento
+Importe
+Sentido (Entrada / Salida)
+Medio de pago
+Usuario
+Fecha y hora
+Tienda
+RF-CASH-022
+El sistema debe impedir la creación de movimientos de Caja sin evento funcional origen.
+
+RF-CASH-030 · Tipos de movimiento (dominio controlado)
+RF-CASH-030
+El sistema debe soportar los siguientes tipos de movimiento de Caja:
+Venta
+Compra a cliente (oro / piezas)
+Devolución
+Empeño
+Cobro de intereses de empeño
+Ajuste autorizado
+Entrada manual (solo Admin)
+Salida manual (solo Admin)
+RF-CASH-031
+Los tipos de movimiento deben gestionarse mediante dominio controlado, no editable por usuarios estándar.
+
+RF-CASH-040 · Venta y cobro
+RF-CASH-040
+El sistema debe registrar el cobro de una venta como movimiento de Caja tipo Venta.
+RF-CASH-041
+Una venta no puede considerarse cerrada sin al menos un movimiento de Caja asociado.
+RF-CASH-042
+El movimiento de Caja de una venta debe quedar vinculado a:
+Venta
+Cliente (si aplica)
+Pieza(s)
+
+RF-CASH-050 · Compra de oro / piezas a clientes
+RF-CASH-050
+El sistema debe permitir registrar la compra de oro o piezas a clientes como salida de Caja.
+RF-CASH-051
+Toda compra a cliente debe estar asociada obligatoriamente a:
+Cliente identificado
+Pieza(s) adquirida(s)
+Usuario
+Tienda
+
+Trazabilidad legal reforzada
+RF-CASH-052
+El sistema debe generar una ficha legal de compra obligatoria para cada operación de compra a cliente.
+RF-CASH-053
+La ficha legal de compra debe permitir adjuntar:
+Imagen del documento identificativo del cliente
+Fotografías de la(s) pieza(s) adquirida(s)
+RF-CASH-054
+El sistema debe marcar las piezas compradas a clientes como legalmente en custodia durante el periodo reglamentario.
+RF-CASH-055
+Durante el periodo de custodia legal:
+La pieza no puede venderse
+La pieza no puede transformarse
+La pieza no puede salir del control del sistema
+RF-CASH-056
+Transcurrido el periodo legal sin incidencia, el sistema debe permitir la liberación legal explícita de la pieza.
+
+RF-CASH-060 · Empeños
+RF-CASH-060
+El sistema debe registrar los siguientes eventos de empeño como movimientos de Caja:
+Entrega inicial
+Cobro de intereses
+Recuperación
+Adjudicación
+RF-CASH-061
+Cada evento de empeño debe quedar vinculado a cliente, pieza y contrato de empeño.
+
+RF-CASH-070 · Medios de pago
+RF-CASH-070
+El sistema debe permitir registrar medios de pago mediante dominio controlado:
+Efectivo
+Tarjeta
+Transferencia
+Bizum
+Vale / crédito interno
+Pago mixto
+
+RF-CASH-080 · Facturación (integración)
+RF-CASH-080
+El sistema debe permitir, desde el flujo de Caja, activar la emisión de factura oficial cuando el cliente lo solicite.
+RF-CASH-081
+No todos los movimientos de Caja deben requerir factura.
+RF-CASH-082
+Toda factura emitida debe cumplir:
+Numeración única
+Numeración incremental consecutiva sin saltos
+No duplicación
+No modificación
+No eliminación
+Trazabilidad completa
+RF-CASH-083
+El sistema debe vincular cada factura emitida a:
+Un único movimiento de Caja
+Una única venta o evento funcional
+RF-CASH-084
+La corrección de errores debe realizarse exclusivamente mediante:
+Factura rectificativa
+Contra-movimientos de Caja
+
+RF-CASH-090 · Roles y permisos
+RF-CASH-090
+El sistema debe permitir que el rol Dependienta:
+Registre cobros y pagos estándar
+Consulte la Caja del día (solo lectura)
+RF-CASH-091
+El sistema debe impedir que el rol Dependienta:
+Realice ajustes
+Elimine movimientos
+Fuerce cierres
+RF-CASH-092
+El rol Administrador debe poder:
+Realizar ajustes documentados
+Ejecutar cierres forzados
+Autorizar excepciones
+
+RF-CASH-100 · Inmutabilidad y auditoría
+RF-CASH-100
+El sistema debe impedir la edición o eliminación de movimientos de Caja.
+RF-CASH-101
+Toda corrección debe generar un nuevo movimiento trazado.
+RF-CASH-102
+El sistema debe mantener trazabilidad completa por:
+Usuario
+Fecha y hora
+Tienda
+Evento funcional
