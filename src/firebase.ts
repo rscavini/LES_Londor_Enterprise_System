@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
-import { initializeFirestore } from "firebase/firestore";
-import { getAuth, signInAnonymously } from "firebase/auth";
+import { initializeFirestore, Firestore } from "firebase/firestore";
+import { getAuth, signInAnonymously, Auth } from "firebase/auth";
 
 const firebaseConfig = {
     apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -12,7 +12,10 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-let app, db, auth;
+let app;
+let db: Firestore = null as any;
+let auth: Auth = null as any;
+
 try {
     app = initializeApp(firebaseConfig);
     db = initializeFirestore(app, {});
@@ -22,12 +25,14 @@ try {
 }
 
 // Initialize Anonymous Sign-in
-signInAnonymously(auth)
-    .then(() => {
-        console.log("Conexión anónima establecida con Firebase");
-    })
-    .catch((error) => {
-        console.error("Error al establecer conexión anónima:", error);
-    });
+if (auth) {
+    signInAnonymously(auth)
+        .then(() => {
+            console.log("Conexión anónima establecida con Firebase");
+        })
+        .catch((error) => {
+            console.error("Error al establecer conexión anónima:", error);
+        });
+}
 
 export { db, auth };

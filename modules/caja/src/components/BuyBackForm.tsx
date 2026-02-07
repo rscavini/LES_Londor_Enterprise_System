@@ -9,6 +9,7 @@ import {
     X,
     CheckCircle
 } from 'lucide-react';
+import { Timestamp } from 'firebase/firestore';
 import { CajaService } from '../services/CajaService';
 import { PaymentMethod } from '../models/cajaSchema';
 
@@ -51,6 +52,9 @@ const BuyBackForm: React.FC<BuyBackFormProps> = ({ cajaId, onSuccess, onCancel }
             });
 
             // 2. Create Legal Ficha
+            const custodyEndDate = new Date();
+            custodyEndDate.setDate(custodyEndDate.getDate() + 15);
+
             await CajaService.createFichaLegal({
                 movementId: moveRef.id,
                 clientId,
@@ -58,7 +62,8 @@ const BuyBackForm: React.FC<BuyBackFormProps> = ({ cajaId, onSuccess, onCancel }
                 dniPhotoUrl: dniPhoto,
                 itemPhotosUrls: itemPhotos,
                 observations,
-                sentToAuthorityDate: null
+                sentToAuthorityDate: null,
+                custodyEndDate: Timestamp.fromDate(custodyEndDate)
             });
 
             onSuccess();

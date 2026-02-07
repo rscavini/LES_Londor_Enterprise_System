@@ -5,7 +5,8 @@ import {
     Eye,
     Undo2,
     ReceiptText,
-    ShieldCheck
+    ShieldCheck,
+    History as HistoryIcon
 } from 'lucide-react';
 import { MovimientoCaja } from '../models/cajaSchema';
 
@@ -61,7 +62,7 @@ const MovementList: React.FC<MovementListProps> = ({ movements }) => {
                                 <td>{move.userId}</td>
                                 <td>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: 'var(--accent)' }}>
-                                        <History size={12} />
+                                        <HistoryIcon size={12} />
                                         {move.originId}
                                     </div>
                                 </td>
@@ -70,7 +71,7 @@ const MovementList: React.FC<MovementListProps> = ({ movements }) => {
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                             <ReceiptText size={14} color="var(--accent)" />
                                             <span style={{ fontSize: '11px', fontWeight: 600 }}>{move.facturaId}</span>
-                                            <ShieldCheck size={14} color="var(--success)" title="Verifactu OK" />
+                                            <ShieldCheck size={14} color="var(--success)" />
                                         </div>
                                     ) : (
                                         <span style={{ color: '#ccc', fontStyle: 'italic', fontSize: '11px' }}>Sin factura</span>
