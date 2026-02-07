@@ -12,27 +12,17 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-let app;
-let db: Firestore = null as any;
-let auth: Auth = null as any;
-
-try {
-    app = initializeApp(firebaseConfig);
-    db = initializeFirestore(app, {});
-    auth = getAuth(app);
-} catch (error) {
-    console.error("CRITICAL: Error during Firebase initialization:", error);
-}
+const app = initializeApp(firebaseConfig);
+const db: Firestore = initializeFirestore(app, {});
+const auth: Auth = getAuth(app);
 
 // Initialize Anonymous Sign-in
-if (auth) {
-    signInAnonymously(auth)
-        .then(() => {
-            console.log("Conexión anónima establecida con Firebase");
-        })
-        .catch((error) => {
-            console.error("Error al establecer conexión anónima:", error);
-        });
-}
+signInAnonymously(auth)
+    .then(() => {
+        console.log("Conexión anónima establecida con Firebase");
+    })
+    .catch((error) => {
+        console.error("Error al establecer conexión anónima:", error);
+    });
 
 export { db, auth };
