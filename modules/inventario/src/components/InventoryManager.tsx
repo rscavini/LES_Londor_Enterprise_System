@@ -105,6 +105,12 @@ const InventoryManager: React.FC = () => {
     const [selectedDetailItem, setSelectedDetailItem] = useState<InventoryItem | null>(null);
     const [activeDetailImageIdx, setActiveDetailImageIdx] = useState(0);
 
+    // Modals y estados para acciones masivas
+    const [showBulkMove, setShowBulkMove] = useState(false);
+    const [bulkMoveData, setBulkMoveData] = useState({ locationId: '', statusId: '' });
+    const [showPrintLabels, setShowPrintLabels] = useState(false);
+    const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+
     // Reservation State
     const [isReservationModalOpen, setIsReservationModalOpen] = useState(false);
     const [reservationExpiry, setReservationExpiry] = useState('');
@@ -305,6 +311,71 @@ const InventoryManager: React.FC = () => {
             }
             return { field, direction: 'asc' };
         });
+    };
+
+    const handleBulkDelete = async () => {
+        if (!window.confirm(`¿Estás seguro de que deseas eliminar ${selectedItems.length} piezas? Esta acción no se puede deshacer.`)) return;
+        try {
+            await Promise.all(selectedItems.map(id => InventoryService.deleteLogic(id)));
+            setSelectedItems([]);
+            await loadData();
+            alert("Piezas eliminadas con éxito.");
+        } catch (error) {
+            console.error("Error deleting items:", error);
+            alert("Error al eliminar algunas piezas.");
+        }
+    };
+
+    const handleBulkMoveUpdate = async () => {
+        if (!bulkMoveData.locationId && !bulkMoveData.statusId) {
+            alert("Selecciona al menos un cambio (Ubicación o Estado).");
+            return;
+        }
+        try {
+            await Promise.all(selectedItems.map(id => {
+                const updateData: any = {};
+                if (bulkMoveData.locationId) updateData.locationId = bulkMoveData.locationId;
+                if (bulkMoveData.statusId) updateData.statusId = bulkMoveData.statusId;
+                return InventoryService.update(id, updateData);
+            }));
+            setShowBulkMove(false);
+            setSelectedItems([]);
+            await loadData();
+            alert("Piezas actualizadas con éxito.");
+        } catch (error) {
+            console.error("Error moving items:", error);
+            alert("Error al actualizar las piezas.");
+        }
+    };
+
+    const handleExportCSV = () => {
+        const selectedData = items.filter(i => selectedItems.includes(i.id));
+        if (selectedData.length === 0) return;
+
+        const headers = ["ID", "Referencia", "Nombre", "Categoría", "Subcategoría", "Ubicación", "Estado", "Precio Venta", "Precio Compra", "Peso"];
+        const rows = selectedData.map(i => [
+            i.id,
+            i.itemCode,
+            i.name,
+            getCategoryName(i.categoryId),
+            getSubcategoryName(i.subcategoryId),
+            getLocationName(i.locationId),
+            getStatusName(i.statusId),
+            i.salePrice,
+            i.purchasePrice,
+            i.mainWeight
+        ]);
+
+        const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `export-inventario-${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
     const getCategoryName = (id: string) => categories.find(c => c.id === id)?.name || 'N/A';
@@ -604,19 +675,19 @@ const InventoryManager: React.FC = () => {
                             <Sparkles size={18} />
                             <span>Estrategia IA</span>
                         </button>
-                        <button className="bulk-btn" title="Cambiar Ubicación/Estado">
+                        <button className="bulk-btn" title="Cambiar Ubicación/Estado" onClick={() => setShowBulkMove(true)}>
                             <MapPin size={18} />
                             <span>Mover</span>
                         </button>
-                        <button className="bulk-btn" title="Imprimir Etiquetas">
+                        <button className="bulk-btn" title="Imprimir Etiquetas" onClick={() => setShowPrintLabels(true)}>
                             <Printer size={18} />
                             <span>Etiquetas</span>
                         </button>
-                        <button className="bulk-btn" title="Exportar">
+                        <button className="bulk-btn" title="Exportar" onClick={handleExportCSV}>
                             <Download size={18} />
                             <span>Exportar</span>
                         </button>
-                        <button className="bulk-btn" style={{ color: '#ff4d4d' }} title="Eliminar">
+                        <button className="bulk-btn" style={{ color: '#ff4d4d' }} title="Eliminar" onClick={handleBulkDelete}>
                             <Trash2 size={18} />
                             <span>Borrar</span>
                         </button>
@@ -1322,6 +1393,123 @@ const InventoryManager: React.FC = () => {
             }
 
 
+            {/* Modal de Movimiento Masivo */}
+            {showBulkMove && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    zIndex: 2500, backdropFilter: 'blur(4px)'
+                }}>
+                    <div className="glass-card" style={{ padding: '32px', width: '450px', backgroundColor: 'white' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                            <h2 style={{ margin: 0 }}>Mover {selectedItems.length} piezas</h2>
+                            <button className="btn" onClick={() => setShowBulkMove(false)}><X size={20} /></button>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600 }}>Ubicación Destino</label>
+                                <select
+                                    className="form-control"
+                                    value={bulkMoveData.locationId}
+                                    onChange={e => setBulkMoveData({ ...bulkMoveData, locationId: e.target.value })}
+                                    style={{ width: '100%' }}
+                                >
+                                    <option value="">Mantener actual</option>
+                                    {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600 }}>Nuevo Estado</label>
+                                <select
+                                    className="form-control"
+                                    value={bulkMoveData.statusId}
+                                    onChange={e => setBulkMoveData({ ...bulkMoveData, statusId: e.target.value })}
+                                    style={{ width: '100%' }}
+                                >
+                                    <option value="">Mantener actual</option>
+                                    {statuses.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                </select>
+                            </div>
+                        </div>
+                        <div style={{ marginTop: '32px', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                            <button className="btn" onClick={() => setShowBulkMove(false)}>Cancelar</button>
+                            <button className="btn btn-primary" onClick={handleBulkMoveUpdate}>Aplicar cambios</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal de Impresión de Etiquetas */}
+            {showPrintLabels && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    zIndex: 3000, overflowY: 'auto', padding: '40px'
+                }}>
+                    <div style={{ backgroundColor: 'white', padding: '40px', borderRadius: '16px', maxWidth: '900px', width: '100%', position: 'relative' }}>
+                        <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', paddingBottom: '20px', borderBottom: '1px solid #eee' }}>
+                            <h2 style={{ margin: 0 }}>Vista Previa de Etiquetas ({selectedItems.length})</h2>
+                            <div style={{ display: 'flex', gap: '12px' }}>
+                                <button className="btn" onClick={() => setShowPrintLabels(false)}>Cerrar</button>
+                                <button className="btn btn-primary" onClick={() => window.print()}>
+                                    <Printer size={18} /> Imprimir Etiquetas
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="print-grid" style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                            gap: '20px'
+                        }}>
+                            {items.filter(i => selectedItems.includes(i.id)).map(item => (
+                                <div key={item.id} className="label-card" style={{
+                                    border: '1px solid #eee',
+                                    borderRadius: '8px',
+                                    padding: '16px',
+                                    display: 'flex',
+                                    gap: '12px',
+                                    backgroundColor: 'white'
+                                }}>
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{ fontSize: '10px', color: '#666', fontWeight: 800 }}>LONDOR LES</div>
+                                        <div style={{ fontSize: '14px', fontWeight: 800, margin: '4px 0' }}>{item.itemCode}</div>
+                                        <div style={{ fontSize: '11px', color: '#444', marginBottom: '8px', lineHeight: '1.2' }}>{item.name}</div>
+                                        <div style={{ fontSize: '12px', fontWeight: 900 }}>{item.salePrice?.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</div>
+                                    </div>
+                                    <div style={{ width: '70px', height: '70px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <QRCodeCanvas
+                                            value={item.itemCode || item.id}
+                                            size={70}
+                                            level="L"
+                                            includeMargin={false}
+                                        />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <style>
+                {`
+                @media print {
+                    .no-print, header, .glass-card, .container, .bulk-actions-bar, .modal-backdrop {
+                        display: none !important;
+                    }
+                    body, .container, .container > * { margin: 0 !important; padding: 0 !important; }
+                    .print-grid {
+                        display: block !important;
+                    }
+                    .label-card {
+                        page-break-inside: avoid;
+                        margin-bottom: 1cm !important;
+                        border: 1px solid #000 !important;
+                    }
+                }
+                `}
+            </style>
         </div >
     );
 };

@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { SupplierService } from '../services/SupplierService';
 import { Supplier } from '../models/schema';
+import SupplierDetails from './SupplierDetails';
 
 const SupplierManager: React.FC = () => {
     const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -23,6 +24,7 @@ const SupplierManager: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [isAdding, setIsAdding] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
+    const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
     const [formData, setFormData] = useState({
         name: '',
         taxId: '',
@@ -121,6 +123,10 @@ const SupplierManager: React.FC = () => {
         setEditingId(null);
         setIsAdding(false);
     };
+
+    if (selectedSupplier) {
+        return <SupplierDetails supplier={selectedSupplier} onBack={() => setSelectedSupplier(null)} />;
+    }
 
     return (
         <div className="container" style={{ paddingBottom: '60px' }}>
@@ -262,9 +268,9 @@ const SupplierManager: React.FC = () => {
                             <p style={{ marginTop: '16px', color: 'var(--text-muted)' }}>Cargando proveedores...</p>
                         </div>
                     ) : (
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '24px' }}>
+                        <div className="glass-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '24px' }}>
                             {filteredSuppliers.length > 0 ? filteredSuppliers.map(supplier => (
-                                <div key={supplier.id} className="glass-card" style={{ padding: '24px', transition: 'all 0.3s' }}>
+                                <div key={supplier.id} className="glass-card supplier-card" style={{ padding: '24px', transition: 'all 0.3s' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
                                         <div style={{
                                             width: '56px',
@@ -326,20 +332,28 @@ const SupplierManager: React.FC = () => {
                                                 }}>{supplier.email}</span>
                                             </div>
                                         )}
-                                        {supplier.address && (
-                                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', fontSize: '14px' }}>
-                                                <MapPin size={16} color="var(--primary)" style={{ marginTop: '2px' }} />
-                                                <span style={{ opacity: 0.8 }}>{supplier.address}</span>
-                                            </div>
-                                        )}
-                                        {supplier.website && (
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '14px' }}>
-                                                <Globe size={16} color="var(--primary)" />
-                                                <a href={supplier.website} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none' }}>
-                                                    {supplier.website.replace(/^https?:\/\//, '')}
-                                                </a>
-                                            </div>
-                                        )}
+                                    </div>
+
+                                    <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end' }}>
+                                        <button
+                                            className="btn"
+                                            onClick={() => setSelectedSupplier(supplier)}
+                                            style={{
+                                                background: 'none',
+                                                border: '1px solid var(--primary)',
+                                                color: 'var(--primary)',
+                                                fontSize: '12px',
+                                                fontWeight: 700,
+                                                padding: '8px 16px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '8px',
+                                                borderRadius: '8px',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            VER FICHA COMPLETA <ChevronRight size={14} />
+                                        </button>
                                     </div>
                                 </div>
                             )) : (

@@ -233,9 +233,34 @@ export interface Customer {
     phone: string;
     email?: string;
     address?: string;
+
+    // Datos Personales (Premium)
+    birthDate?: string;  // ISO YYYY-MM-DD
+    gender?: 'M' | 'F' | 'OTHER' | 'NA';
+
+    // Preferencias y Tallas
+    preferences?: {
+        preferredMaterials?: string[];
+        ringSize?: string;
+        necklaceLength?: string;
+        style?: string[]; // Romántico, Minimalista, etc.
+    };
+
+    // Fechas importantes
+    importantDates?: {
+        label: string; // "Aniversario", "Cumpleaños pareja"
+        date: string;
+    }[];
+
+    // Fidelización
+    loyaltyPoints?: number;
+    clientLevel?: 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM' | 'VIP';
+
+    notes?: string;
     tags?: string[];     // VIP, Recurrente, etc.
     isActive: boolean;
     createdAt: Date;
+    updatedAt?: Date;
     createdBy: string;
 }
 

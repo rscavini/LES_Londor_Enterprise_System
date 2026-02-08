@@ -148,5 +148,20 @@ export const InventoryService = {
             createdAt: doc.data().createdAt?.toDate(),
             updatedAt: doc.data().updatedAt?.toDate()
         })) as InventoryItem[];
+    },
+
+    getBySupplier: async (supplierId: string): Promise<InventoryItem[]> => {
+        const q = query(
+            collection(db, COLLECTION_NAME),
+            where('supplierId', '==', supplierId),
+            where('isActive', '==', true)
+        );
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map(doc => ({
+            ...doc.data(),
+            id: doc.id,
+            createdAt: doc.data().createdAt?.toDate(),
+            updatedAt: doc.data().updatedAt?.toDate()
+        })) as InventoryItem[];
     }
 };
