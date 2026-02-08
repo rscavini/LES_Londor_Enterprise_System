@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from './firebase';
 import CategoryManager from '@modules/inventario/src/components/CategoryManager';
 import SubcategoryManager from '@modules/inventario/src/components/SubcategoryManager';
 import DomainAttributeManager from '@modules/inventario/src/components/DomainAttributeManager';
@@ -13,6 +15,47 @@ import CajaManager from '@modules/caja/src/components/CajaManager';
 
 function App() {
     const [activeTab, setActiveTab] = useState<'inventory' | 'customers' | 'reservations' | 'suppliers' | 'caja' | 'attributes' | 'logistics' | 'classification_config'>('inventory');
+    const [isAuthReady, setIsAuthReady] = useState(false);
+
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            if (user) {
+                console.log("Sesión de Firebase sincronizada");
+                setIsAuthReady(true);
+            }
+        });
+        return () => unsubscribe();
+    }, []);
+
+    if (!isAuthReady) {
+        return (
+            <div style={{
+                height: '100vh',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: '#fdfdfd'
+            }}>
+                <div className="glass-card" style={{ padding: '40px', textAlign: 'center' }}>
+                    <div style={{
+                        width: '40px',
+                        height: '40px',
+                        border: '4px solid #f3f3f3',
+                        borderTop: '4px solid var(--accent)',
+                        borderRadius: '50%',
+                        animation: 'spin 1s linear infinite',
+                        margin: '0 auto 20px'
+                    }} />
+                    <h2 style={{ fontFamily: 'Outfit', margin: 0 }}>Iniciando Sesión Segura...</h2>
+                    <p style={{ color: 'var(--text-muted)', marginTop: '8px' }}>Sincronizando con Londor Enterprise System</p>
+                </div>
+                <style>{`
+                    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+                `}</style>
+            </div>
+        );
+    }
 
     return (
         <div className="app-shell" style={{ minHeight: '100vh', backgroundColor: '#fdfdfd' }}>
