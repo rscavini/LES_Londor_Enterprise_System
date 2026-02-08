@@ -8,7 +8,7 @@ import {
     Camera
 } from 'lucide-react';
 import { collection, query, where, getDocs, orderBy, Timestamp } from 'firebase/firestore';
-import { db } from '../../../inventario/src/firebase';
+import { db } from '@/firebase';
 import { FichaLegalCompra } from '../models/cajaSchema';
 
 const LegalCustodyBandeja: React.FC = () => {
