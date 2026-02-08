@@ -24,6 +24,7 @@ import { DomainService } from '../services/DomainService';
 import { AIService } from '../services/AIService';
 import { InventoryItem, Category, Subcategory, Location, OperationalStatus, ClassificationMapping, Attribute, Supplier, DomainValue } from '../models/schema';
 import DomainManagerModal from './DomainManagerModal';
+import VoiceInput from './VoiceInput';
 
 interface InventoryItemFormProps {
     initialData?: InventoryItem | null;
@@ -101,6 +102,9 @@ const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
     // Domain Manager Modal State
     const [isDomainModalOpen, setIsDomainModalOpen] = useState(false);
     const [managedDomain, setManagedDomain] = useState<{ id: string, name: string }>({ id: '', name: '' });
+
+    // Tabs State
+    const [activeTab, setActiveTab] = useState<'general' | 'classification' | 'economy' | 'marketing'>('general');
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -559,172 +563,223 @@ const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
                 <button className="btn" onClick={onCancel} style={{ border: 'none', background: 'transparent' }}><X size={24} color="#666" /></button>
             </div>
 
+            {/* --- TABS NAVIGATION --- */}
+            <div style={{ display: 'flex', gap: '2px', padding: '0 32px', backgroundColor: 'white', borderBottom: '1px solid #f0f0f0' }}>
+                {[
+                    { id: 'general', label: '1. General', icon: <ImageIcon size={16} /> },
+                    { id: 'classification', label: '2. Clasificación', icon: <Settings size={16} /> },
+                    { id: 'economy', label: '3. Economía y Logística', icon: <Calculator size={16} /> },
+                    { id: 'marketing', label: '4. Marketing e IA', icon: <Sparkles size={16} /> }
+                ].map(tab => (
+                    <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setActiveTab(tab.id as any)}
+                        style={{
+                            padding: '16px 24px',
+                            border: 'none',
+                            backgroundColor: 'transparent',
+                            color: activeTab === tab.id ? 'var(--accent)' : '#666',
+                            fontWeight: activeTab === tab.id ? 700 : 500,
+                            fontSize: '14px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            borderBottom: activeTab === tab.id ? '3px solid var(--accent)' : '3px solid transparent',
+                            transition: 'all 0.2s'
+                        }}
+                    >
+                        {tab.icon} {tab.label}
+                    </button>
+                ))}
+            </div>
+
             {/* --- CONTENT SCROLLABLE --- */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '32px' }}>
                 <form onSubmit={handleFormSubmit}>
 
-                    {/* SECTION 1: IMAGES */}
-                    <div style={{ marginBottom: '40px' }}>
-                        <label style={{ display: 'block', marginBottom: '12px', fontWeight: 600, fontSize: '14px', color: '#444' }}>Galería de Imágenes (La primera será portada)</label>
-                        <input
-                            type="file"
-                            multiple
-                            ref={fileInputRef}
-                            style={{ display: 'none' }}
-                            onChange={handleFileSelect}
-                            accept="image/*"
-                        />
-                        <div style={{
-                            border: isDragging ? '2px solid var(--accent)' : '2px dashed #e0e0e0',
-                            borderRadius: '16px',
-                            padding: '40px',
-                            textAlign: 'center',
-                            backgroundColor: isDragging ? 'var(--accent-light)' : '#fafafa',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s',
-                            opacity: isDragging ? 0.8 : 1
-                        }}
-                            className="upload-zone"
-                            onClick={() => fileInputRef.current?.click()}
-                            onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-                            onDragLeave={() => setIsDragging(false)}
-                            onDrop={handleDrop}
-                        >
-                            <ImagePlus size={48} color={isDragging ? 'var(--accent)' : '#ccc'} style={{ marginBottom: '16px' }} />
-                            <p style={{ margin: 0, color: '#666', fontSize: '15px' }}>
-                                Arrastra las fotos aquí o <strong>haz clic para explorar</strong>
-                            </p>
-                            <p style={{ marginTop: '8px', color: '#999', fontSize: '12px' }}>Soporta múltiples imágenes JPG, PNG</p>
-                        </div>
-
-                        {uploadedImages.length > 0 && (
-                            <div style={{ display: 'flex', gap: '16px', marginTop: '24px', overflowX: 'auto', paddingBottom: '8px' }}>
-                                {uploadedImages.map((src, idx) => (
-                                    <div key={idx} style={{ position: 'relative', flexShrink: 0, boxShadow: '0 4px 6px rgba(0,0,0,0.1)', borderRadius: '12px' }}>
-                                        <img src={src} style={{ width: '100px', height: '100px', borderRadius: '12px', objectFit: 'cover' }} />
-                                        <button
-                                            type="button"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setUploadedImages(prev => prev.filter((_, i) => i !== idx));
-                                                setUploadedFiles(prev => prev.filter((_, i) => i !== idx));
-                                            }}
-                                            style={{ position: 'absolute', top: '-8px', right: '-8px', width: '24px', height: '24px', borderRadius: '50%', backgroundColor: 'var(--error)', color: 'white', border: '2px solid white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                                        >
-                                            <X size={14} />
-                                        </button>
-                                        {idx === 0 && (
-                                            <span style={{ position: 'absolute', bottom: '8px', left: '8px', backgroundColor: 'rgba(0,0,0,0.6)', color: 'white', fontSize: '10px', padding: '2px 6px', borderRadius: '4px' }}>Principal</span>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(400px, 1.5fr) 1fr', gap: '48px' }}>
-                        {/* --- LEFT COLUMN: CORE INFO --- */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-                            {/* Identificación */}
-                            <div className="glass-card" style={{ padding: '24px', backgroundColor: 'white', border: '1px solid #eee' }}>
-                                <label style={{ display: 'block', marginBottom: '16px', fontWeight: 700, fontSize: '14px', color: '#333', borderBottom: '2px solid var(--accent)', paddingBottom: '8px', width: 'fit-content' }}>1. Identificación</label>
-                                <div style={{ display: 'grid', gridTemplateColumns: '3fr 1fr', gap: '16px', marginBottom: '20px' }}>
-                                    <div>
-                                        <span style={{ fontSize: '11px', color: '#666', fontWeight: 600 }}>NOMBRE CORTO *</span>
-                                        <input
-                                            required
-                                            className="form-control"
-                                            value={formData.name}
-                                            onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                            placeholder="Ej: Anillo Solitario Oro Blanco"
-                                            style={{ width: '100%', fontSize: '15px' }}
-                                        />
-                                    </div>
-                                    <div>
-                                        <span style={{ fontSize: '11px', color: '#666', fontWeight: 600 }}>CÓDIGO (REF)</span>
-                                        <input
-                                            className="form-control"
-                                            value={formData.itemCode}
-                                            onChange={e => setFormData({ ...formData, itemCode: e.target.value })}
-                                            placeholder="Auto"
-                                            style={{ width: '100%', fontWeight: 700, color: 'var(--primary)', textAlign: 'center' }}
-                                        />
-                                    </div>
-                                </div>
-                                <div style={{ marginBottom: '16px' }}>
-                                    <span style={{ fontSize: '11px', color: '#666', fontWeight: 600 }}>DESCRIPCIÓN TÉCNICA *</span>
-                                    <textarea
-                                        required
-                                        rows={3}
-                                        value={formData.description}
-                                        onChange={e => setFormData({ ...formData, description: e.target.value })}
-                                        placeholder="Descripción detallada para inventario..."
-                                        style={{ width: '100%', borderRadius: '8px', border: '1px solid #ddd', padding: '12px', marginTop: '4px' }}
-                                    />
-                                </div>
-                                <div>
-                                    <span style={{ fontSize: '11px', color: '#666', fontWeight: 600 }}>COMENTARIOS INTERNOS</span>
-                                    <textarea
-                                        rows={2}
-                                        value={formData.comments}
-                                        onChange={e => setFormData({ ...formData, comments: e.target.value })}
-                                        placeholder="Notas de taller, defectos, observaciones..."
-                                        style={{ width: '100%', borderRadius: '8px', border: '1px solid #ddd', padding: '12px', fontSize: '13px', backgroundColor: '#fffcf5', marginTop: '4px' }}
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Clasificación */}
-                            <div className="glass-card" style={{ padding: '24px', backgroundColor: 'white', border: '1px solid #eee' }}>
-                                <label style={{ display: 'block', marginBottom: '16px', fontWeight: 700, fontSize: '14px', color: '#333', borderBottom: '2px solid var(--accent)', paddingBottom: '8px', width: 'fit-content' }}>2. Clasificación</label>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
-                                    <div>
-                                        <span style={{ fontSize: '11px', color: '#666', fontWeight: 600 }}>CATEGORÍA *</span>
-                                        <select
-                                            required
-                                            className="form-control"
-                                            value={formData.categoryId}
-                                            onChange={e => setFormData({ ...formData, categoryId: e.target.value, subcategoryId: '' })}
-                                            style={{ width: '100%' }}
-                                        >
-                                            <option value="" disabled>Seleccione...</option>
-                                            {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <span style={{ fontSize: '11px', color: '#666', fontWeight: 600 }}>SUBCATEGORÍA *</span>
-                                        <select
-                                            required
-                                            className="form-control"
-                                            value={formData.subcategoryId}
-                                            onChange={e => setFormData({ ...formData, subcategoryId: e.target.value })}
-                                            disabled={!formData.categoryId}
-                                            style={{ width: '100%' }}
-                                        >
-                                            <option value="" disabled>Seleccione...</option>
-                                            {subcategories.filter(s => s.categoryId === formData.categoryId).map(s => (
-                                                <option key={s.id} value={s.id}>{s.name}</option>
-                                            ))}
-                                        </select>
-                                    </div>
+                    {/* SECTION 1: IMAGES & CORE INFO (General Tab) */}
+                    {activeTab === 'general' && (
+                        <>
+                            <div style={{ marginBottom: '40px' }}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', fontWeight: 600, fontSize: '14px', color: '#444' }}>
+                                    Galería de Imágenes (La primera será portada)
+                                </label>
+                                <input
+                                    type="file"
+                                    multiple
+                                    ref={fileInputRef}
+                                    style={{ display: 'none' }}
+                                    onChange={handleFileSelect}
+                                    accept="image/*"
+                                />
+                                <div style={{
+                                    border: isDragging ? '2px solid var(--accent)' : '2px dashed #e0e0e0',
+                                    borderRadius: '16px',
+                                    padding: '40px',
+                                    textAlign: 'center',
+                                    backgroundColor: isDragging ? 'var(--accent-light)' : '#fafafa',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s',
+                                    opacity: isDragging ? 0.8 : 1
+                                }}
+                                    className="upload-zone"
+                                    onClick={() => fileInputRef.current?.click()}
+                                    onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                                    onDragLeave={() => setIsDragging(false)}
+                                    onDrop={handleDrop}
+                                >
+                                    <ImagePlus size={48} color={isDragging ? 'var(--accent)' : '#ccc'} style={{ marginBottom: '16px' }} />
+                                    <p style={{ margin: 0, color: '#666', fontSize: '15px' }}>
+                                        Arrastra las fotos aquí o <strong>haz clic para explorar</strong>
+                                    </p>
+                                    <p style={{ marginTop: '8px', color: '#999', fontSize: '12px' }}>Soporta múltiples imágenes JPG, PNG</p>
                                 </div>
 
-                                {/* CAMPOS DINÁMICOS */}
-                                {dynamicFields.length > 0 && (
-                                    <div style={{ padding: '24px', backgroundColor: '#f8f9fa', borderRadius: '12px', border: '1px solid #e9ecef' }}>
-                                        <h4 style={{ margin: '0 0 20px 0', fontSize: '12px', color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 700 }}>
-                                            Atributos de {subcategories.find(s => s.id === formData.subcategoryId)?.name}
-                                        </h4>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                            {dynamicFields.map(renderDynamicField)}
-                                        </div>
+                                {uploadedImages.length > 0 && (
+                                    <div style={{ display: 'flex', gap: '16px', marginTop: '24px', overflowX: 'auto', paddingBottom: '8px' }}>
+                                        {uploadedImages.map((src, idx) => (
+                                            <div key={idx} style={{ position: 'relative', flexShrink: 0, boxShadow: '0 4px 6px rgba(0,0,0,0.1)', borderRadius: '12px' }}>
+                                                <img src={src} style={{ width: '100px', height: '100px', borderRadius: '12px', objectFit: 'cover' }} />
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setUploadedImages(prev => prev.filter((_, i) => i !== idx));
+                                                        setUploadedFiles(prev => prev.filter((_, i) => i !== idx));
+                                                    }}
+                                                    style={{ position: 'absolute', top: '-8px', right: '-8px', width: '24px', height: '24px', borderRadius: '50%', backgroundColor: 'var(--error)', color: 'white', border: '2px solid white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                                >
+                                                    <X size={14} />
+                                                </button>
+                                                {idx === 0 && (
+                                                    <span style={{ position: 'absolute', bottom: '8px', left: '8px', backgroundColor: 'rgba(0,0,0,0.6)', color: 'white', fontSize: '10px', padding: '2px 6px', borderRadius: '4px' }}>Principal</span>
+                                                )}
+                                            </div>
+                                        ))}
                                     </div>
                                 )}
                             </div>
-                        </div>
 
-                        {/* --- RIGHT COLUMN: FINANCIAL & LOGISTICS --- */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '48px' }}>
+                                {/* --- CORE INFO --- */}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+                                    {/* Identificación */}
+                                    <div className="glass-card" style={{ padding: '24px', backgroundColor: 'white', border: '1px solid #eee' }}>
+                                        <label style={{ display: 'block', marginBottom: '16px', fontWeight: 700, fontSize: '14px', color: '#333', borderBottom: '2px solid var(--accent)', paddingBottom: '8px', width: 'fit-content' }}>1. Identificación</label>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '3fr 1fr', gap: '16px', marginBottom: '20px' }}>
+                                            <div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                                    <span style={{ fontSize: '11px', color: '#666', fontWeight: 600 }}>NOMBRE CORTO *</span>
+                                                    <VoiceInput onResult={(text) => setFormData(prev => ({ ...prev, name: prev.name + (prev.name ? ' ' : '') + text }))} />
+                                                </div>
+                                                <input
+                                                    required
+                                                    className="form-control"
+                                                    value={formData.name}
+                                                    onChange={e => setFormData({ ...formData, name: e.target.value })}
+                                                    placeholder="Ej: Anillo Solitario Oro Blanco"
+                                                    style={{ width: '100%', fontSize: '15px' }}
+                                                />
+                                            </div>
+                                            <div>
+                                                <span style={{ fontSize: '11px', color: '#666', fontWeight: 600 }}>CÓDIGO (REF)</span>
+                                                <input
+                                                    className="form-control"
+                                                    value={formData.itemCode}
+                                                    onChange={e => setFormData({ ...formData, itemCode: e.target.value })}
+                                                    placeholder="Auto"
+                                                    style={{ width: '100%', fontWeight: 700, color: 'var(--primary)', textAlign: 'center' }}
+                                                />
+                                            </div>
+                                        </div>
+                                        <div style={{ marginBottom: '16px' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                                <span style={{ fontSize: '11px', color: '#666', fontWeight: 600 }}>DESCRIPCIÓN TÉCNICA *</span>
+                                                <VoiceInput onResult={(text) => setFormData(prev => ({ ...prev, description: prev.description + (prev.description ? ' ' : '') + text }))} />
+                                            </div>
+                                            <textarea
+                                                required
+                                                rows={3}
+                                                value={formData.description}
+                                                onChange={e => setFormData({ ...formData, description: e.target.value })}
+                                                placeholder="Descripción detallada para inventario..."
+                                                style={{ width: '100%', borderRadius: '8px', border: '1px solid #ddd', padding: '12px', marginTop: '4px' }}
+                                            />
+                                        </div>
+                                        <div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                                <span style={{ fontSize: '11px', color: '#666', fontWeight: 600 }}>COMENTARIOS INTERNOS</span>
+                                                <VoiceInput onResult={(text) => setFormData(prev => ({ ...prev, comments: prev.comments + (prev.comments ? ' ' : '') + text }))} />
+                                            </div>
+                                            <textarea
+                                                rows={2}
+                                                value={formData.comments}
+                                                onChange={e => setFormData({ ...formData, comments: e.target.value })}
+                                                placeholder="Notas de taller, defectos, observaciones..."
+                                                style={{ width: '100%', borderRadius: '8px', border: '1px solid #ddd', padding: '12px', fontSize: '13px', backgroundColor: '#fffcf5', marginTop: '4px' }}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </>
+                    )}
+
+                    {/* SECTION 2: CLASSIFICATION (Classification Tab) */}
+                    {activeTab === 'classification' && (
+                        <div className="glass-card" style={{ padding: '24px', backgroundColor: 'white', border: '1px solid #eee' }}>
+                            <label style={{ display: 'block', marginBottom: '16px', fontWeight: 700, fontSize: '14px', color: '#333', borderBottom: '2px solid var(--accent)', paddingBottom: '8px', width: 'fit-content' }}>2. Clasificación</label>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+                                <div>
+                                    <span style={{ fontSize: '11px', color: '#666', fontWeight: 600 }}>CATEGORÍA *</span>
+                                    <select
+                                        required
+                                        className="form-control"
+                                        value={formData.categoryId}
+                                        onChange={e => setFormData({ ...formData, categoryId: e.target.value, subcategoryId: '' })}
+                                        style={{ width: '100%' }}
+                                    >
+                                        <option value="" disabled>Seleccione...</option>
+                                        {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <span style={{ fontSize: '11px', color: '#666', fontWeight: 600 }}>SUBCATEGORÍA *</span>
+                                    <select
+                                        required
+                                        className="form-control"
+                                        value={formData.subcategoryId}
+                                        onChange={e => setFormData({ ...formData, subcategoryId: e.target.value })}
+                                        disabled={!formData.categoryId}
+                                        style={{ width: '100%' }}
+                                    >
+                                        <option value="" disabled>Seleccione...</option>
+                                        {subcategories.filter(s => s.categoryId === formData.categoryId).map(s => (
+                                            <option key={s.id} value={s.id}>{s.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* CAMPOS DINÁMICOS */}
+                            {dynamicFields.length > 0 && (
+                                <div style={{ padding: '24px', backgroundColor: '#f8f9fa', borderRadius: '12px', border: '1px solid #e9ecef' }}>
+                                    <h4 style={{ margin: '0 0 20px 0', fontSize: '12px', color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 700 }}>
+                                        Atributos de {subcategories.find(s => s.id === formData.subcategoryId)?.name}
+                                    </h4>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                        {dynamicFields.map(renderDynamicField)}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* SECTION 3: ECONOMY & LOGISTICS (Economy Tab) */}
+                    {activeTab === 'economy' && (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(400px, 1.5fr) 1fr', gap: '48px' }}>
                             {/* Financial Card */}
                             <div className="glass-card" style={{ padding: '0', overflow: 'hidden', border: '1px solid #ffe8cc', boxShadow: '0 4px 15px rgba(230, 126, 34, 0.1)' }}>
                                 <div style={{ backgroundColor: '#fff8f0', padding: '16px 24px', borderBottom: '1px solid #ffe8cc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -832,245 +887,267 @@ const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    )}
 
-                    {/* SECTION 3: COMMERCIAL STRATEGY */}
-                    <div style={{ marginTop: '48px', padding: '32px', border: '1px solid #e0e0e0', borderRadius: '16px', backgroundColor: '#fdfdfd' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-                            <Target size={24} color="var(--primary)" />
-                            <h3 style={{ margin: 0, fontSize: '18px' }}>Estrategia Comercial e Inteligencia</h3>
-                        </div>
-
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '24px' }}>
-                            {/* Línea */}
-                            <div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                                    <label style={{ margin: 0, fontWeight: 600, fontSize: '12px' }}>LÍNEA COMERCIAL</label>
-                                    <button
-                                        type="button"
-                                        onClick={() => { setManagedDomain({ id: 'dom_linea', name: 'Línea Comercial' }); setIsDomainModalOpen(true); }}
-                                        style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: 0 }}
-                                    >
-                                        <Settings size={12} />
-                                    </button>
+                    {/* SECTION 4: MARKETING & IA (Marketing Tab) */}
+                    {activeTab === 'marketing' && (
+                        <>
+                            <div style={{ padding: '32px', border: '1px solid #e0e0e0', borderRadius: '16px', backgroundColor: '#fdfdfd', marginBottom: '24px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
+                                    <Target size={24} color="var(--primary)" />
+                                    <h3 style={{ margin: 0, fontSize: '18px' }}>Estrategia Comercial e Inteligencia</h3>
                                 </div>
-                                <select
-                                    className="form-control"
-                                    value={formData.commercialLine}
-                                    onChange={e => setFormData({ ...formData, commercialLine: e.target.value })}
-                                    style={{ width: '100%' }}
-                                >
-                                    <option value="">Seleccione...</option>
-                                    {lineValues.map(v => <option key={v.id} value={v.value}>{v.value}</option>)}
-                                </select>
-                            </div>
 
-                            {/* Colección */}
-                            <div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                                    <label style={{ margin: 0, fontWeight: 600, fontSize: '12px' }}>COLECCIÓN</label>
-                                    <button
-                                        type="button"
-                                        onClick={() => { setManagedDomain({ id: 'dom_coleccion', name: 'Colecciones' }); setIsDomainModalOpen(true); }}
-                                        style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: 0 }}
-                                    >
-                                        <Settings size={12} />
-                                    </button>
-                                </div>
-                                <select
-                                    className="form-control"
-                                    value={formData.collection}
-                                    onChange={e => setFormData({ ...formData, collection: e.target.value })}
-                                    style={{ width: '100%' }}
-                                >
-                                    <option value="">Seleccione...</option>
-                                    {collectionValues.map(v => <option key={v.id} value={v.value}>{v.value}</option>)}
-                                </select>
-                            </div>
-
-                            {/* Ocasiones */}
-                            <div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                                    <label style={{ margin: 0, fontWeight: 600, fontSize: '12px' }}>OCASIÓN / MOTIVO</label>
-                                    <button
-                                        type="button"
-                                        onClick={() => { setManagedDomain({ id: 'dom_ocasion', name: 'Ocasiones' }); setIsDomainModalOpen(true); }}
-                                        style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: 0 }}
-                                    >
-                                        <Plus size={12} />
-                                    </button>
-                                </div>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', padding: '8px', border: '1px solid #ddd', borderRadius: '8px', minHeight: '38px', backgroundColor: 'white' }}>
-                                    {occasionValues.map(v => (
-                                        <div
-                                            key={v.id}
-                                            onClick={() => {
-                                                const current = formData.occasion || [];
-                                                const next = current.includes(v.value) ? current.filter(p => p !== v.value) : [...current, v.value];
-                                                setFormData({ ...formData, occasion: next });
-                                            }}
-                                            style={{
-                                                padding: '4px 10px',
-                                                borderRadius: '15px',
-                                                fontSize: '10px',
-                                                cursor: 'pointer',
-                                                backgroundColor: formData.occasion?.includes(v.value) ? '#9b59b6' : '#f0f2f5',
-                                                color: formData.occasion?.includes(v.value) ? 'white' : '#555',
-                                            }}
-                                        >
-                                            {v.value}
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
+                                    {/* Línea */}
+                                    <div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                            <label style={{ margin: 0, fontWeight: 600, fontSize: '12px' }}>LÍNEA COMERCIAL</label>
+                                            <button
+                                                type="button"
+                                                onClick={() => { setManagedDomain({ id: 'dom_linea', name: 'Línea Comercial' }); setIsDomainModalOpen(true); }}
+                                                style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: 0 }}
+                                            >
+                                                <Settings size={12} />
+                                            </button>
                                         </div>
-                                    ))}
+                                        <select
+                                            className="form-control"
+                                            value={formData.commercialLine}
+                                            onChange={e => setFormData({ ...formData, commercialLine: e.target.value })}
+                                            style={{ width: '100%' }}
+                                        >
+                                            <option value="">Seleccione...</option>
+                                            {lineValues.map(v => <option key={v.id} value={v.value}>{v.value}</option>)}
+                                        </select>
+                                    </div>
+
+                                    {/* Colección */}
+                                    <div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                            <label style={{ margin: 0, fontWeight: 600, fontSize: '12px' }}>COLECCIÓN</label>
+                                            <button
+                                                type="button"
+                                                onClick={() => { setManagedDomain({ id: 'dom_coleccion', name: 'Colecciones' }); setIsDomainModalOpen(true); }}
+                                                style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: 0 }}
+                                            >
+                                                <Settings size={12} />
+                                            </button>
+                                        </div>
+                                        <select
+                                            className="form-control"
+                                            value={formData.collection}
+                                            onChange={e => setFormData({ ...formData, collection: e.target.value })}
+                                            style={{ width: '100%' }}
+                                        >
+                                            <option value="">Seleccione...</option>
+                                            {collectionValues.map(v => <option key={v.id} value={v.value}>{v.value}</option>)}
+                                        </select>
+                                    </div>
+
+                                    {/* Ocasiones */}
+                                    <div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                            <label style={{ margin: 0, fontWeight: 600, fontSize: '12px' }}>OCASIÓN / MOTIVO</label>
+                                            <button
+                                                type="button"
+                                                onClick={() => { setManagedDomain({ id: 'dom_ocasion', name: 'Ocasiones' }); setIsDomainModalOpen(true); }}
+                                                style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: 0 }}
+                                            >
+                                                <Plus size={12} />
+                                            </button>
+                                        </div>
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', padding: '8px', border: '1px solid #ddd', borderRadius: '8px', minHeight: '38px', backgroundColor: 'white' }}>
+                                            {occasionValues.map(v => (
+                                                <div
+                                                    key={v.id}
+                                                    onClick={() => {
+                                                        const current = formData.occasion || [];
+                                                        const next = current.includes(v.value) ? current.filter(p => p !== v.value) : [...current, v.value];
+                                                        setFormData({ ...formData, occasion: next });
+                                                    }}
+                                                    style={{
+                                                        padding: '4px 10px',
+                                                        borderRadius: '15px',
+                                                        fontSize: '10px',
+                                                        cursor: 'pointer',
+                                                        backgroundColor: formData.occasion?.includes(v.value) ? '#9b59b6' : '#f0f2f5',
+                                                        color: formData.occasion?.includes(v.value) ? 'white' : '#555',
+                                                    }}
+                                                >
+                                                    {v.value}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Simbología */}
+                                    <div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                            <label style={{ margin: 0, fontWeight: 600, fontSize: '12px' }}>SIMBOLOGÍA</label>
+                                            <button
+                                                type="button"
+                                                onClick={() => { setManagedDomain({ id: 'dom_simbol', name: 'Simbología' }); setIsDomainModalOpen(true); }}
+                                                style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: 0 }}
+                                            >
+                                                <Plus size={12} />
+                                            </button>
+                                        </div>
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', padding: '8px', border: '1px solid #ddd', borderRadius: '8px', minHeight: '38px', backgroundColor: 'white' }}>
+                                            {symbologyValues.map(v => (
+                                                <div
+                                                    key={v.id}
+                                                    onClick={() => {
+                                                        const current = formData.symbology || [];
+                                                        const next = current.includes(v.value) ? current.filter(p => p !== v.value) : [...current, v.value];
+                                                        setFormData({ ...formData, symbology: next });
+                                                    }}
+                                                    style={{
+                                                        padding: '4px 10px',
+                                                        borderRadius: '15px',
+                                                        fontSize: '10px',
+                                                        cursor: 'pointer',
+                                                        backgroundColor: formData.symbology?.includes(v.value) ? '#e74c3c' : '#f0f2f5',
+                                                        color: formData.symbology?.includes(v.value) ? 'white' : '#555',
+                                                    }}
+                                                >
+                                                    {v.value}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Perfil Cliente */}
+                                    <div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                            <label style={{ margin: 0, fontWeight: 600, fontSize: '12px' }}>PERFIL CLIENTE</label>
+                                            <button
+                                                type="button"
+                                                onClick={() => { setManagedDomain({ id: 'dom_perfil_cli', name: 'Perfiles de Cliente' }); setIsDomainModalOpen(true); }}
+                                                style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: 0 }}
+                                            >
+                                                <Plus size={12} />
+                                            </button>
+                                        </div>
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', padding: '8px', border: '1px solid #ddd', borderRadius: '8px', minHeight: '38px', backgroundColor: 'white' }}>
+                                            {profileValues.map(v => (
+                                                <div
+                                                    key={v.id}
+                                                    onClick={() => {
+                                                        const current = formData.customerProfile || [];
+                                                        const next = current.includes(v.value) ? current.filter(p => p !== v.value) : [...current, v.value];
+                                                        setFormData({ ...formData, customerProfile: next });
+                                                    }}
+                                                    style={{
+                                                        padding: '4px 10px',
+                                                        borderRadius: '15px',
+                                                        fontSize: '10px',
+                                                        cursor: 'pointer',
+                                                        backgroundColor: formData.customerProfile?.includes(v.value) ? '#f39c12' : '#f0f2f5',
+                                                        color: formData.customerProfile?.includes(v.value) ? 'white' : '#555',
+                                                    }}
+                                                >
+                                                    {v.value}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
-                            {/* Simbología */}
-                            <div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                                    <label style={{ margin: 0, fontWeight: 600, fontSize: '12px' }}>SIMBOLOGÍA</label>
+                            {/* SECTION 4: AI COPYWRITING */}
+                            <div style={{ padding: '32px', border: '1px solid #c7d2fe', borderRadius: '16px', backgroundColor: '#eef2ff' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                        <Sparkles size={24} color="#6366f1" />
+                                        <h3 style={{ margin: 0, color: '#4338ca', fontSize: '18px' }}>Copywriting & Marketing Generativo</h3>
+                                    </div>
                                     <button
                                         type="button"
-                                        onClick={() => { setManagedDomain({ id: 'dom_simbol', name: 'Simbología' }); setIsDomainModalOpen(true); }}
-                                        style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: 0 }}
+                                        className="btn btn-primary"
+                                        onClick={handleManualAICopywriting}
+                                        disabled={isGeneratingAI}
+                                        style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', backgroundColor: '#6366f1', border: 'none' }}
                                     >
-                                        <Plus size={12} />
+                                        {isGeneratingAI ? <><RotateCcw size={16} className="spin" /> Generando...</> : <><Sparkles size={16} /> Generar con IA</>}
                                     </button>
                                 </div>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', padding: '8px', border: '1px solid #ddd', borderRadius: '8px', minHeight: '38px', backgroundColor: 'white' }}>
-                                    {symbologyValues.map(v => (
-                                        <div
-                                            key={v.id}
-                                            onClick={() => {
-                                                const current = formData.symbology || [];
-                                                const next = current.includes(v.value) ? current.filter(p => p !== v.value) : [...current, v.value];
-                                                setFormData({ ...formData, symbology: next });
-                                            }}
-                                            style={{
-                                                padding: '4px 10px',
-                                                borderRadius: '15px',
-                                                fontSize: '10px',
-                                                cursor: 'pointer',
-                                                backgroundColor: formData.symbology?.includes(v.value) ? '#e74c3c' : '#f0f2f5',
-                                                color: formData.symbology?.includes(v.value) ? 'white' : '#555',
-                                            }}
-                                        >
-                                            {v.value}
+
+                                <div style={{ marginBottom: '24px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0, fontWeight: 600, fontSize: '13px' }}>
+                                            <Share2 size={16} /> Social Media Copy (Instagram/FB)
+                                        </label>
+                                        <VoiceInput onResult={(text) => setFormData(prev => ({ ...prev, socialDescription: prev.socialDescription + (prev.socialDescription ? ' ' : '') + text }))} />
+                                    </div>
+                                    <textarea
+                                        rows={3}
+                                        className="form-control"
+                                        value={formData.socialDescription}
+                                        onChange={e => setFormData({ ...formData, socialDescription: e.target.value })}
+                                        placeholder="Caption creativo para redes sociales..."
+                                        style={{ width: '100%', borderRadius: '12px', border: '1px solid #c7d2fe' }}
+                                    />
+                                </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                    <div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                            <span style={{ fontSize: '12px', fontWeight: 600, color: '#666' }}>Detalles de Diseño</span>
+                                            <VoiceInput onResult={(text) => setFormData(prev => ({ ...prev, detailedDescription: { ...prev.detailedDescription, design: prev.detailedDescription.design + (prev.detailedDescription.design ? ' ' : '') + text } }))} />
                                         </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Perfil Cliente */}
-                            <div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                                    <label style={{ margin: 0, fontWeight: 600, fontSize: '12px' }}>PERFIL CLIENTE</label>
-                                    <button
-                                        type="button"
-                                        onClick={() => { setManagedDomain({ id: 'dom_perfil_cli', name: 'Perfiles de Cliente' }); setIsDomainModalOpen(true); }}
-                                        style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: 0 }}
-                                    >
-                                        <Plus size={12} />
-                                    </button>
-                                </div>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', padding: '8px', border: '1px solid #ddd', borderRadius: '8px', minHeight: '38px', backgroundColor: 'white' }}>
-                                    {profileValues.map(v => (
-                                        <div
-                                            key={v.id}
-                                            onClick={() => {
-                                                const current = formData.customerProfile || [];
-                                                const next = current.includes(v.value) ? current.filter(p => p !== v.value) : [...current, v.value];
-                                                setFormData({ ...formData, customerProfile: next });
-                                            }}
-                                            style={{
-                                                padding: '4px 10px',
-                                                borderRadius: '15px',
-                                                fontSize: '10px',
-                                                cursor: 'pointer',
-                                                backgroundColor: formData.customerProfile?.includes(v.value) ? '#f39c12' : '#f0f2f5',
-                                                color: formData.customerProfile?.includes(v.value) ? 'white' : '#555',
-                                            }}
-                                        >
-                                            {v.value}
+                                        <textarea rows={2} className="form-control" value={formData.detailedDescription.design} onChange={e => setFormData({ ...formData, detailedDescription: { ...formData.detailedDescription, design: e.target.value } })} style={{ width: '100%', marginTop: '4px' }} />
+                                    </div>
+                                    <div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                            <span style={{ fontSize: '12px', fontWeight: 600, color: '#666' }}>Materiales y Acabados</span>
+                                            <VoiceInput onResult={(text) => setFormData(prev => ({ ...prev, detailedDescription: { ...prev.detailedDescription, materials: prev.detailedDescription.materials + (prev.detailedDescription.materials ? ' ' : '') + text } }))} />
                                         </div>
-                                    ))}
+                                        <textarea rows={2} className="form-control" value={formData.detailedDescription.materials} onChange={e => setFormData({ ...formData, detailedDescription: { ...formData.detailedDescription, materials: e.target.value } })} style={{ width: '100%', marginTop: '4px' }} />
+                                    </div>
+                                    <div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                            <span style={{ fontSize: '12px', fontWeight: 600, color: '#666' }}>Simbolismo de la Pieza</span>
+                                            <VoiceInput onResult={(text) => setFormData(prev => ({ ...prev, detailedDescription: { ...prev.detailedDescription, symbolism: prev.detailedDescription.symbolism + (prev.detailedDescription.symbolism ? ' ' : '') + text } }))} />
+                                        </div>
+                                        <textarea
+                                            rows={2}
+                                            className="form-control"
+                                            value={formData.detailedDescription.symbolism}
+                                            onChange={e => setFormData({ ...formData, detailedDescription: { ...formData.detailedDescription, symbolism: e.target.value } })}
+                                            style={{ width: '100%', marginTop: '4px' }}
+                                        />
+                                    </div>
+                                    <div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                            <span style={{ fontSize: '12px', fontWeight: 600, color: '#666' }}>Especificaciones Técnicas</span>
+                                            <VoiceInput onResult={(text) => setFormData(prev => ({ ...prev, detailedDescription: { ...prev.detailedDescription, technicalSpecs: prev.detailedDescription.technicalSpecs + (prev.detailedDescription.technicalSpecs ? ' ' : '') + text } }))} />
+                                        </div>
+                                        <textarea
+                                            rows={2}
+                                            className="form-control"
+                                            value={formData.detailedDescription.technicalSpecs}
+                                            onChange={e => setFormData({ ...formData, detailedDescription: { ...formData.detailedDescription, technicalSpecs: e.target.value } })}
+                                            style={{ width: '100%', marginTop: '4px' }}
+                                        />
+                                    </div>
+                                    <div style={{ gridColumn: '1 / -1' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                            <span style={{ fontSize: '12px', fontWeight: 600, color: '#666' }}>Detalles Adicionales</span>
+                                            <VoiceInput onResult={(text) => setFormData(prev => ({ ...prev, detailedDescription: { ...prev.detailedDescription, details: prev.detailedDescription.details + (prev.detailedDescription.details ? ' ' : '') + text } }))} />
+                                        </div>
+                                        <textarea
+                                            rows={2}
+                                            className="form-control"
+                                            value={formData.detailedDescription.details}
+                                            onChange={e => setFormData({ ...formData, detailedDescription: { ...formData.detailedDescription, details: e.target.value } })}
+                                            style={{ width: '100%', marginTop: '4px' }}
+                                        />
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-
-                    {/* SECTION 4: AI COPYWRITING */}
-                    <div style={{ marginTop: '24px', padding: '32px', border: '1px solid #c7d2fe', borderRadius: '16px', backgroundColor: '#eef2ff' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <Sparkles size={24} color="#6366f1" />
-                                <h3 style={{ margin: 0, color: '#4338ca', fontSize: '18px' }}>Copywriting & Marketing Generativo</h3>
-                            </div>
-                            <button
-                                type="button"
-                                className="btn btn-primary"
-                                onClick={handleManualAICopywriting}
-                                disabled={isGeneratingAI}
-                                style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', backgroundColor: '#6366f1', border: 'none' }}
-                            >
-                                {isGeneratingAI ? <><RotateCcw size={16} className="spin" /> Generando...</> : <><Sparkles size={16} /> Generar con IA</>}
-                            </button>
-                        </div>
-
-                        <div style={{ marginBottom: '24px' }}>
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontWeight: 600, fontSize: '13px' }}>
-                                <Share2 size={16} /> Social Media Copy (Instagram/FB)
-                            </label>
-                            <textarea
-                                rows={3}
-                                className="form-control"
-                                value={formData.socialDescription}
-                                onChange={e => setFormData({ ...formData, socialDescription: e.target.value })}
-                                placeholder="Caption creativo para redes sociales..."
-                                style={{ width: '100%', borderRadius: '12px', border: '1px solid #c7d2fe' }}
-                            />
-                        </div>
-
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                            <div>
-                                <span style={{ fontSize: '12px', fontWeight: 600, color: '#666' }}>Detalles de Diseño</span>
-                                <textarea rows={2} className="form-control" value={formData.detailedDescription.design} onChange={e => setFormData({ ...formData, detailedDescription: { ...formData.detailedDescription, design: e.target.value } })} style={{ width: '100%', marginTop: '4px' }} />
-                            </div>
-                            <div>
-                                <span style={{ fontSize: '12px', fontWeight: 600, color: '#666' }}>Materiales y Acabados</span>
-                                <textarea rows={2} className="form-control" value={formData.detailedDescription.materials} onChange={e => setFormData({ ...formData, detailedDescription: { ...formData.detailedDescription, materials: e.target.value } })} style={{ width: '100%', marginTop: '4px' }} />
-                            </div>
-                            <div>
-                                <span style={{ fontSize: '12px', fontWeight: 600, color: '#666' }}>Simbolismo de la Pieza</span>
-                                <textarea
-                                    rows={2}
-                                    className="form-control"
-                                    value={formData.detailedDescription.symbolism}
-                                    onChange={e => setFormData({ ...formData, detailedDescription: { ...formData.detailedDescription, symbolism: e.target.value } })}
-                                    style={{ width: '100%', marginTop: '4px' }}
-                                />
-                            </div>
-                            <div>
-                                <span style={{ fontSize: '12px', fontWeight: 600, color: '#666' }}>Especificaciones Técnicas</span>
-                                <textarea
-                                    rows={2}
-                                    className="form-control"
-                                    value={formData.detailedDescription.technicalSpecs}
-                                    onChange={e => setFormData({ ...formData, detailedDescription: { ...formData.detailedDescription, technicalSpecs: e.target.value } })}
-                                    style={{ width: '100%', marginTop: '4px' }}
-                                />
-                            </div>
-                            <div style={{ gridColumn: '1 / -1' }}>
-                                <span style={{ fontSize: '12px', fontWeight: 600, color: '#666' }}>Detalles Adicionales</span>
-                                <textarea
-                                    rows={2}
-                                    className="form-control"
-                                    value={formData.detailedDescription.details}
-                                    onChange={e => setFormData({ ...formData, detailedDescription: { ...formData.detailedDescription, details: e.target.value } })}
-                                    style={{ width: '100%', marginTop: '4px' }}
-                                />
-                            </div>
-                        </div>
-                    </div>
+                        </>
+                    )}
 
                     <div style={{ marginTop: '40px', display: 'flex', justifyContent: 'flex-end', gap: '12px', paddingBottom: '40px' }}>
                         <button type="button" className="btn" onClick={onCancel} style={{ padding: '12px 24px' }}>Cancelar</button>
@@ -1080,7 +1157,7 @@ const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
                     </div>
 
                 </form>
-            </div>
+            </div >
 
             <DomainManagerModal
                 isOpen={isDomainModalOpen}
@@ -1089,7 +1166,7 @@ const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
                 domainName={managedDomain.name}
                 onUpdate={fetchCommercialMasters}
             />
-        </div>
+        </div >
     );
 };
 

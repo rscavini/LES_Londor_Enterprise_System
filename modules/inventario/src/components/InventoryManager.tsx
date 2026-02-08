@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { QRCodeCanvas } from 'qrcode.react';
 import {
     Plus,
     Search,
@@ -852,6 +853,40 @@ const InventoryManager: React.FC = () => {
                                 <div style={{ marginBottom: '32px' }}>
                                     <h4 style={{ fontSize: '14px', marginBottom: '12px', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Descripción Técnica</h4>
                                     <p style={{ fontSize: '15px', lineHeight: '1.6', color: '#444' }}>{selectedDetailItem.description}</p>
+                                </div>
+
+                                {/* SECCIÓN QR CODE */}
+                                <div className="glass-card" style={{ marginBottom: '32px', padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', backgroundColor: '#fff' }}>
+                                    <div style={{ padding: '12px', background: 'white', border: '1px solid #eee', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+                                        <QRCodeCanvas
+                                            value={selectedDetailItem.itemCode || selectedDetailItem.id}
+                                            size={120}
+                                            level="H"
+                                            includeMargin={true}
+                                        />
+                                    </div>
+                                    <div>
+                                        <h4 style={{ fontSize: '14px', margin: '0 0 8px 0', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Identificador QR</h4>
+                                        <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 12px 0' }}>
+                                            Escanea este código para acceder rápidamente a la ficha técnica o realizar trazabilidad en tienda.
+                                        </p>
+                                        <button
+                                            className="btn"
+                                            style={{ fontSize: '12px', padding: '6px 12px', border: '1px solid #ddd' }}
+                                            onClick={() => {
+                                                const canvas = document.querySelector('canvas');
+                                                if (canvas) {
+                                                    const url = canvas.toDataURL("image/png");
+                                                    const link = document.createElement('a');
+                                                    link.download = `QR-${selectedDetailItem.itemCode}.png`;
+                                                    link.href = url;
+                                                    link.click();
+                                                }
+                                            }}
+                                        >
+                                            <Download size={14} /> Descargar QR
+                                        </button>
+                                    </div>
                                 </div>
 
                                 {/* NUEVA SECCIÓN: STORYTELLING Y MARKETING */}
