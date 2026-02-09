@@ -314,9 +314,15 @@ const InventoryManager: React.FC = () => {
     };
 
     const handleBulkDelete = async () => {
-        if (!window.confirm(`¿Estás seguro de que deseas eliminar ${selectedItems.length} piezas? Esta acción no se puede deshacer.`)) return;
+        if (selectedItems.length === 0) return;
+
+        const confirmMsg = `¿Estás seguro de que deseas eliminar ${selectedItems.length} piezas? Esta acción no se puede deshacer.`;
+        if (!window.confirm(confirmMsg)) return;
+
         try {
+            console.log("LES: Starting bulk delete for:", selectedItems);
             await Promise.all(selectedItems.map(id => InventoryService.deleteLogic(id)));
+            console.log("LES: Deletion successful");
             setSelectedItems([]);
             await loadData();
             alert("Piezas eliminadas con éxito.");
@@ -404,7 +410,7 @@ const InventoryManager: React.FC = () => {
                                 />
                             </th>
                             <th style={{ width: '50px' }} className="sortable" onClick={() => handleSort('can')}>
-                                CAN {renderSortIcon('can')}
+                                # {renderSortIcon('can')}
                             </th>
                             <th style={{ width: '100px' }} className={`sortable ${sortConfig?.field === 'createdAt' ? 'active-sort' : ''}`} onClick={() => handleSort('createdAt')}>
                                 FECHA {renderSortIcon('createdAt')}
@@ -430,7 +436,7 @@ const InventoryManager: React.FC = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {filteredItems.map(item => (
+                        {filteredItems.map((item, index) => (
                             <tr
                                 key={item.id}
                                 className={selectedItems.includes(item.id) ? 'selected' : ''}
@@ -447,7 +453,7 @@ const InventoryManager: React.FC = () => {
                                         readOnly
                                     />
                                 </td>
-                                <td className="number">1</td>
+                                <td className="number">{index + 1}</td>
                                 <td className="date">{new Date(item.createdAt).toLocaleDateString()}</td>
                                 <td className="badge-cell">
                                     <div className="excel-thumbnail-container">
@@ -719,7 +725,15 @@ const InventoryManager: React.FC = () => {
                                     toggleSelectItem(item.id);
                                 }
                             }}
-                            style={{ padding: '0', overflow: 'hidden', marginBottom: viewMode === 'list' ? '16px' : '0', cursor: 'pointer', position: 'relative' }}
+                            style={{
+                                padding: '0',
+                                overflow: 'hidden',
+                                marginBottom: viewMode === 'list' ? '16px' : '0',
+                                cursor: 'pointer',
+                                position: 'relative',
+                                display: viewMode === 'list' ? 'flex' : 'block',
+                                height: viewMode === 'list' ? '120px' : 'auto'
+                            }}
                         >
                             {/* Selection Checkbox */}
                             <div
@@ -744,11 +758,21 @@ const InventoryManager: React.FC = () => {
                                 {selectedItems.includes(item.id) && <Check size={16} color="white" strokeWidth={3} />}
                             </div>
 
-                            <div style={{ height: '180px', backgroundColor: '#f8f9fa', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ccc', position: 'relative' }}>
+                            <div style={{
+                                width: viewMode === 'list' ? '120px' : '100%',
+                                height: viewMode === 'list' ? '100%' : '180px',
+                                backgroundColor: '#f8f9fa',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: '#ccc',
+                                position: 'relative',
+                                flexShrink: 0
+                            }}>
                                 {item.images && item.images.length > 0 ? (
                                     <img src={item.images[0]} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                                 ) : (
-                                    <ImageIcon size={48} />
+                                    <ImageIcon size={viewMode === 'list' ? 32 : 48} />
                                 )}
                                 <div style={{ position: 'absolute', top: '12px', left: '12px' }}>
                                     <span style={{

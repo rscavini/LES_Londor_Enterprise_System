@@ -9,12 +9,26 @@ import {
     History as HistoryIcon
 } from 'lucide-react';
 import { MovimientoCaja } from '../models/cajaSchema';
+import { CajaService } from '../services/CajaService';
 
 interface MovementListProps {
     movements: MovimientoCaja[];
+    onRefresh: () => void;
+    onViewInvoice: (move: MovimientoCaja) => void;
 }
 
-const MovementList: React.FC<MovementListProps> = ({ movements }) => {
+const MovementList: React.FC<MovementListProps> = ({ movements, onRefresh, onViewInvoice }) => {
+    const handleCounterMovement = async (move: MovimientoCaja) => {
+        if (!confirm(`¿Estás seguro de que quieres realizar un contra-movimiento para anular esta operación de ${move.amount}€?`)) return;
+
+        try {
+            await CajaService.counterMovement(move);
+            onRefresh();
+        } catch (error) {
+            console.error("Error creating counter-movement:", error);
+            alert("Error al realizar el contra-movimiento.");
+        }
+    };
     return (
         <div className="excel-container" style={{ border: 'none', borderRadius: 0 }}>
             <table className="excel-table">
@@ -79,12 +93,33 @@ const MovementList: React.FC<MovementListProps> = ({ movements }) => {
                                 </td>
                                 <td className="badge-cell">
                                     <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                                        <button title="Ver detalle" style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-muted)' }}>
+                                        <button
+                                            title={move.facturaId ? "Ver Factura" : "Ver detalle"}
+                                            style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: move.facturaId ? 'var(--primary)' : 'var(--text-muted)' }}
+                                            onClick={() => move.facturaId && onViewInvoice(move)}
+                                        >
                                             <Eye size={16} />
                                         </button>
-                                        <button title="Ajuste / Contra-movimiento" style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-muted)' }}>
+                                        <button
+                                            title="Ajuste / Contra-movimiento"
+                                            style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--accent)' }}
+                                            onClick={() => handleCounterMovement(move)}
+                                        >
                                             <Undo2 size={16} />
                                         </button>
+                                        {!move.facturaId && (move.type === 'VENTA' || move.type === 'COMPRA') && (
+                                            <button
+                                                title="Emitir Factura"
+                                                style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--primary)' }}
+                                                onClick={async () => {
+                                                    if (!confirm("¿Deseas emitir la factura oficial para este movimiento?")) return;
+                                                    await CajaService.generateInvoice(move.id);
+                                                    onRefresh();
+                                                }}
+                                            >
+                                                <ReceiptText size={16} />
+                                            </button>
+                                        )}
                                     </div>
                                 </td>
                             </tr>

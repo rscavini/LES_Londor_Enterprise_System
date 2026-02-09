@@ -15,18 +15,24 @@ import {
     Clock
 } from 'lucide-react';
 import { CajaService } from '../services/CajaService';
-import { CajaDiaria, MovimientoCaja } from '../models/cajaSchema';
+import { CajaDiaria, MovimientoCaja, MovementType, PaymentMethod } from '../models/cajaSchema';
 import MovementList from './MovementList';
 import BuyBackForm from './BuyBackForm';
 import LegalCustodyBandeja from './LegalCustodyBandeja';
+import CajaClosureModal from './CajaClosureModal';
+import InvoicePreview from './InvoicePreview';
 
 const CajaManager: React.FC = () => {
     const [view, setView] = useState<'summary' | 'buyback' | 'custody'>('summary');
+    const [isClosureModalOpen, setIsClosureModalOpen] = useState(false);
+    const [selectedMovementForInvoice, setSelectedMovementForInvoice] = useState<MovimientoCaja | null>(null);
     const [currentCaja, setCurrentCaja] = useState<CajaDiaria | null>(null);
     const [movements, setMovements] = useState<MovimientoCaja[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [selectedStore, setSelectedStore] = useState('STORE-DIP'); // Dataset store
+    const [userRole, setUserRole] = useState<'ADMIN' | 'DEPENDIENTA'>('ADMIN'); // Mock role
+    const [currentUser, setCurrentUser] = useState<string | null>(null); // Mock user
 
     useEffect(() => {
         loadCajaStatus();
@@ -79,7 +85,36 @@ const CajaManager: React.FC = () => {
         }
     };
 
-    if (loading) return <div style={{ padding: '80px', textAlign: 'center', fontFamily: 'Outfit' }}>Cargando infraestructura económica...</div>;
+    const handleExportCSV = () => {
+        if (movements.length === 0) return;
+
+        const headers = ["Fecha", "Tipo", "Importe", "Sentido", "Medio Pago", "Usuario", "Referencia"];
+        const rows = movements.map(m => [
+            m.timestamp.toDate().toLocaleString('es-ES'),
+            m.type,
+            m.amount,
+            m.direction,
+            m.paymentMethod,
+            m.userId,
+            m.facturaId || m.originId
+        ]);
+
+        const csvContent = "data:text/csv;charset=utf-8,"
+            + headers.join(",") + "\n"
+            + rows.map(e => e.join(",")).join("\n");
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `movimientos_caja_${selectedStore}_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    if (loading) {
+        return <div style={{ padding: '80px', textAlign: 'center', fontFamily: 'Outfit' }}>Cargando infraestructura económica...</div>;
+    }
 
     if (view === 'buyback' && currentCaja) {
         return (
@@ -103,29 +138,53 @@ const CajaManager: React.FC = () => {
                     <h1 style={{ fontSize: '2.5rem', marginBottom: '8px' }}>Gobierno de Caja</h1>
                     <p style={{ color: 'var(--text-muted)' }}>Control económico y trazabilidad legal de activos</p>
                 </div>
-                <div style={{ display: 'flex', gap: '12px' }}>
-                    <div className="glass-card" style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <Store size={18} color="var(--accent)" />
-                        <select
-                            value={selectedStore}
-                            onChange={(e) => setSelectedStore(e.target.value)}
-                            style={{ border: 'none', background: 'transparent', fontWeight: 600, outline: 'none', cursor: 'pointer' }}
-                        >
-                            <option value="STORE-DIP">LONDOR Diputación</option>
-                            <option value="STORE-PRO">LONDOR Provenza</option>
-                        </select>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                    <div className="glass-card" style={{ padding: '4px 8px', fontSize: '11px', fontWeight: 800, color: 'var(--accent)', border: '1px solid var(--accent)' }}>
+                        {userRole}
                     </div>
+                    {userRole === 'ADMIN' && (
+                        <div className="glass-card" style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <Store size={18} color="var(--accent)" />
+                            <select
+                                value={selectedStore}
+                                onChange={(e) => setSelectedStore(e.target.value)}
+                                style={{ border: 'none', background: 'transparent', fontWeight: 600, outline: 'none', cursor: 'pointer' }}
+                            >
+                                <option value="STORE-DIP">LONDOR Diputación</option>
+                                <option value="STORE-PRO">LONDOR Provenza</option>
+                            </select>
+                        </div>
+                    )}
                     {!currentCaja ? (
                         <button className="btn btn-accent" onClick={handleOpenCaja}>
                             <Unlock size={18} /> Apertura de Caja
                         </button>
                     ) : (
-                        <button className="btn btn-primary">
+                        <button className="btn btn-primary" onClick={() => setIsClosureModalOpen(true)}>
                             <Lock size={18} /> Cierre de Caja
                         </button>
                     )}
                 </div>
             </header>
+
+            {isClosureModalOpen && currentCaja && (
+                <CajaClosureModal
+                    caja={currentCaja}
+                    movements={movements}
+                    onClose={() => setIsClosureModalOpen(false)}
+                    onSuccess={() => {
+                        setIsClosureModalOpen(false);
+                        loadCajaStatus();
+                    }}
+                />
+            )}
+
+            {selectedMovementForInvoice && (
+                <InvoicePreview
+                    movement={selectedMovementForInvoice}
+                    onClose={() => setSelectedMovementForInvoice(null)}
+                />
+            )}
 
             {error && (
                 <div className="glass-card" style={{
@@ -215,15 +274,90 @@ const CajaManager: React.FC = () => {
                                     <h3 style={{ margin: 0 }}>Últimos Movimientos</h3>
                                 </div>
                                 <div style={{ display: 'flex', gap: '8px' }}>
-                                    <button className="btn" style={{ fontSize: '12px' }}>
+                                    <button
+                                        className="btn"
+                                        style={{ fontSize: '12px' }}
+                                        onClick={handleExportCSV}
+                                    >
                                         <FileText size={16} /> Exportar
                                     </button>
-                                    <button className="btn btn-primary" style={{ fontSize: '12px' }}>
-                                        <PlusCircle size={16} /> Ajuste Manual
-                                    </button>
+                                    {userRole === 'ADMIN' && (
+                                        <>
+                                            <button
+                                                className="btn"
+                                                style={{
+                                                    fontSize: '12px',
+                                                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                                                    color: '#10b981',
+                                                    border: '1px solid #10b981',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '6px'
+                                                }}
+                                                onClick={async () => {
+                                                    const amount = prompt("Importe a ENTRAR en caja (€):");
+                                                    if (!amount) return;
+                                                    const reason = prompt("Motivo de la entrada (ej: Reposición de cajero):");
+                                                    if (!reason) return;
+
+                                                    await CajaService.addMovement({
+                                                        cajaId: currentCaja.id,
+                                                        type: 'ENTRADA_MANUAL',
+                                                        amount: Math.abs(parseFloat(amount)),
+                                                        direction: 'IN',
+                                                        paymentMethod: 'EFECTIVO',
+                                                        userId: 'admin',
+                                                        storeId: selectedStore,
+                                                        originId: 'MANUAL_IN',
+                                                        facturaId: reason.substring(0, 20)
+                                                    });
+                                                    loadCajaStatus();
+                                                }}
+                                            >
+                                                <TrendingUp size={14} /> Entrada Manual
+                                            </button>
+                                            <button
+                                                className="btn"
+                                                style={{
+                                                    fontSize: '12px',
+                                                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                                                    color: '#ef4444',
+                                                    border: '1px solid #ef4444',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '6px'
+                                                }}
+                                                onClick={async () => {
+                                                    const amount = prompt("Importe a SACAR de caja (€):");
+                                                    if (!amount) return;
+                                                    const reason = prompt("Motivo de la salida (ej: Pago suministros):");
+                                                    if (!reason) return;
+
+                                                    await CajaService.addMovement({
+                                                        cajaId: currentCaja.id,
+                                                        type: 'SALIDA_MANUAL',
+                                                        amount: Math.abs(parseFloat(amount)),
+                                                        direction: 'OUT',
+                                                        paymentMethod: 'EFECTIVO',
+                                                        userId: 'admin',
+                                                        storeId: selectedStore,
+                                                        originId: 'MANUAL_OUT',
+                                                        facturaId: reason.substring(0, 20)
+                                                    });
+                                                    loadCajaStatus();
+                                                }}
+                                            >
+                                                <TrendingDown size={14} /> Salida Manual
+                                            </button>
+                                        </>
+                                    )}
                                 </div>
                             </div>
-                            <MovementList movements={movements} />
+                            <MovementList
+                                movements={movements}
+                                onRefresh={loadCajaStatus}
+                                onViewInvoice={(move) => setSelectedMovementForInvoice(move)}
+                            />
                         </div>
                     ) : (
                         <div>

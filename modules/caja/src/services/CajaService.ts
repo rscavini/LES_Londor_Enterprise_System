@@ -53,23 +53,26 @@ export const CajaService = {
     },
 
     async addMovement(movement: Omit<MovimientoCaja, "id" | "timestamp">) {
-        // 1. Add movement
+        // 1. Verify that the caja is still OPEN (RF-CASH-012)
+        const cajaRef = doc(db, CAJAS_COLLECTION, movement.cajaId);
+        const cajaSnap = await getDoc(cajaRef);
+
+        if (!cajaSnap.exists()) throw new Error("Caja no encontrada.");
+        if (cajaSnap.data().status !== "OPEN") throw new Error("La caja no está abierta. No se permite registrar movimientos.");
+
+        // 2. Add movement
         const moveRef = await addDoc(collection(db, MOVIMIENTOS_COLLECTION), {
             ...movement,
             timestamp: serverTimestamp()
         });
 
-        // 2. Update theoretical balance in daily caja
-        const cajaRef = doc(db, CAJAS_COLLECTION, movement.cajaId);
-        const cajaSnap = await getDoc(cajaRef);
-        if (cajaSnap.exists()) {
-            const currentTheoretical = cajaSnap.data().theoreticalBalance || 0;
-            const newTheoretical = movement.direction === "IN"
-                ? currentTheoretical + movement.amount
-                : currentTheoretical - movement.amount;
+        // 3. Update theoretical balance in daily caja
+        const currentTheoretical = cajaSnap.data().theoreticalBalance || 0;
+        const newTheoretical = movement.direction === "IN"
+            ? currentTheoretical + movement.amount
+            : currentTheoretical - movement.amount;
 
-            await updateDoc(cajaRef, { theoreticalBalance: newTheoretical });
-        }
+        await updateDoc(cajaRef, { theoreticalBalance: newTheoretical });
 
         return moveRef;
     },
@@ -94,5 +97,28 @@ export const CajaService = {
             custodyEndDate: Timestamp.fromDate(endDate),
             sentToAuthorityDate: null
         });
+    },
+
+    async counterMovement(originalMove: MovimientoCaja) {
+        return await this.addMovement({
+            cajaId: originalMove.cajaId,
+            type: "AJUSTE",
+            amount: originalMove.amount,
+            direction: originalMove.direction === "IN" ? "OUT" : "IN",
+            paymentMethod: originalMove.paymentMethod,
+            userId: "admin", // Ideally current user
+            storeId: originalMove.storeId,
+            originId: originalMove.id, // Linked to original move
+            facturaId: `CORREC-${originalMove.id.substring(0, 6)}`
+        });
+    },
+
+    async generateInvoice(moveId: string) {
+        const moveRef = doc(db, MOVIMIENTOS_COLLECTION, moveId);
+        const nextInvoiceNum = Math.floor(1000 + Math.random() * 9000); // Simulated incremental
+        const facturaId = `F2026-${nextInvoiceNum}`;
+
+        await updateDoc(moveRef, { facturaId });
+        return facturaId;
     }
 };
