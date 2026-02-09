@@ -203,11 +203,48 @@ export interface InventoryItem {
     occasion?: string[];        // Tags: 15 Años, Compromiso, Graduación, etc.
     customerProfile?: string[]; // Tags: Romántico, Minimalista, Clásico, etc.
 
-    // Auditoría
+    // Auditoría y Trazabilidad (Fase A7)
+    lastMovementId?: string;  // FK a InventoryMovement
+    lastMovementAt?: Date;    // Fecha del último movimiento efectivo
+
     isActive: boolean;
     createdAt: Date;
     updatedAt: Date;
     createdBy: string;
+}
+
+// Tipos de Movimiento (Anexo A7)
+export interface MovementType {
+    id: string;
+    code: string;        // CREATE, TRANSFER, STATUS_CHANGE, ADAPTATION, SALE, etc.
+    name: string;
+    description?: string;
+    isActive: boolean;
+}
+
+// Historial de Movimientos (Anexo A7)
+export interface InventoryMovement {
+    id: string;
+    itemId: string;           // FK a InventoryItem
+    movementTypeId: string;   // FK a MovementType
+
+    // Cambios de ubicación
+    fromLocationId?: string;
+    toLocationId?: string;
+
+    // Cambios de estado
+    fromStatusId?: string;
+    toStatusId?: string;
+
+    // Referencia Documental
+    documentType?: string;    // VENTA, APARTADO, TALLER, etc.
+    documentId?: string;      // ID del documento relacionado
+
+    reason?: string;          // Motivo del movimiento
+    notes?: string;
+
+    performedBy: string;      // Usuario que realiza la acción
+    createdAt: Date;
 }
 
 // Ubicaciones (Anexo D - Especializado Fase 0+)

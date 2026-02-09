@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import CategoryManager from './components/CategoryManager';
 import SubcategoryManager from './components/SubcategoryManager';
 import DomainAttributeManager from './components/DomainAttributeManager';
@@ -9,10 +9,17 @@ import CustomerManager from './components/CustomerManager';
 import ReservationBandeja from './components/ReservationBandeja';
 import SupplierManager from './components/SupplierManager';
 import CajaManager from '../../caja/src/components/CajaManager';
+import { testPhase7 } from './test_phase7';
 
 
 function App() {
     const [activeTab, setActiveTab] = useState<'inventory' | 'customers' | 'reservations' | 'suppliers' | 'caja' | 'attributes' | 'logistics' | 'classification_config'>('inventory');
+
+    useEffect(() => {
+        (window as any).testPhase7 = testPhase7;
+        console.log("App mounted. testPhase7 exposed at window.testPhase7");
+        // testPhase7(); 
+    }, []);
 
     return (
         <div className="app-shell" style={{ minHeight: '100vh', backgroundColor: '#fdfdfd' }}>

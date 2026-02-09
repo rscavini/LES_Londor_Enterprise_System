@@ -1,6 +1,7 @@
 import { db } from '@/firebase';
 import { collection, getDocs, getDoc, doc, addDoc, updateDoc, query, where, serverTimestamp } from 'firebase/firestore';
 import { InventoryItem } from '../models/schema';
+import { MovementService } from './MovementService';
 
 const COLLECTION_NAME = 'inventory';
 
@@ -74,7 +75,7 @@ export const InventoryService = {
         return `${prefix}${nextSeq.toString().padStart(4, '0')}`;
     },
 
-    create: async (data: Omit<InventoryItem, 'id' | 'qrCode' | 'isActive' | 'createdAt' | 'updatedAt'>): Promise<InventoryItem> => {
+    create: async (data: Omit<InventoryItem, 'id' | 'qrCode' | 'isActive' | 'createdAt' | 'updatedAt' | 'lastMovementId' | 'lastMovementAt'>, performedBy: string): Promise<InventoryItem> => {
         let itemCode = data.itemCode;
         if (!itemCode) {
             itemCode = await InventoryService.generateItemCode();
@@ -93,33 +94,65 @@ export const InventoryService = {
         const qrCode = `https://les.londor.com/i/${id}`;
         await updateDoc(docRef, { qrCode });
 
+        // Registrar movimiento inicial de creación
+        await MovementService.recordMovement({
+            itemId: id,
+            movementTypeCode: 'CREATE',
+            toLocationId: data.locationId,
+            toStatusId: data.statusId,
+            reason: 'Alta inicial de pieza',
+            performedBy,
+            documentType: null,
+            documentId: null,
+            notes: null
+        });
+
         const finalizedDoc = await getDoc(docRef);
         return {
             ...finalizedDoc.data(),
             id,
             qrCode,
-            createdAt: new Date(), // Using approximate since serverTimestamp is async
-            updatedAt: new Date()
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            lastMovementAt: new Date()
         } as InventoryItem;
     },
 
-    update: async (id: string, updates: Partial<InventoryItem>): Promise<InventoryItem | undefined> => {
-        const docRef = doc(db, COLLECTION_NAME, id);
-        await updateDoc(docRef, {
+    update: async (id: string, updates: Partial<InventoryItem>, performedBy: string): Promise<InventoryItem | undefined> => {
+        const itemRef = doc(db, COLLECTION_NAME, id);
+        const itemSnap = await getDoc(itemRef);
+
+        if (!itemSnap.exists()) return undefined;
+        const currentData = itemSnap.data() as InventoryItem;
+
+        // Detectar cambios de ubicación o estado para trazabilidad
+        const locationChanged = updates.locationId && updates.locationId !== currentData.locationId;
+        const statusChanged = updates.statusId && updates.statusId !== currentData.statusId;
+
+        if (locationChanged || statusChanged) {
+            const movementTypeCode = locationChanged ? 'TRANSFER' : 'STATUS_CHANGE';
+            await MovementService.recordMovement({
+                itemId: id,
+                movementTypeCode,
+                toLocationId: updates.locationId,
+                toStatusId: updates.statusId,
+                reason: updates.reason || 'Actualización manual de registro',
+                performedBy
+            });
+        }
+
+        await updateDoc(itemRef, {
             ...updates,
             updatedAt: serverTimestamp()
         });
 
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-            return {
-                ...docSnap.data(),
-                id: docSnap.id,
-                createdAt: docSnap.data().createdAt?.toDate(),
-                updatedAt: docSnap.data().updatedAt?.toDate()
-            } as InventoryItem;
-        }
-        return undefined;
+        const docSnap = await getDoc(itemRef);
+        return {
+            ...docSnap.data(),
+            id: docSnap.id,
+            createdAt: docSnap.data().createdAt?.toDate(),
+            updatedAt: docSnap.data().updatedAt?.toDate()
+        } as InventoryItem;
     },
 
     deleteLogic: async (id: string): Promise<boolean> => {
