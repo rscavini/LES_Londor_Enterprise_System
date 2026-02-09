@@ -11,10 +11,11 @@ import CustomerManager from '@modules/inventario/src/components/CustomerManager'
 import ReservationBandeja from '@modules/inventario/src/components/ReservationBandeja';
 import SupplierManager from '@modules/inventario/src/components/SupplierManager';
 import CajaManager from '@modules/caja/src/components/CajaManager';
+import SequenceManager from './components/SequenceManager';
 
 
 function App() {
-    const [activeTab, setActiveTab] = useState<'inventory' | 'customers' | 'reservations' | 'suppliers' | 'caja' | 'attributes' | 'logistics' | 'classification_config'>('inventory');
+    const [activeTab, setActiveTab] = useState<'inventory' | 'customers' | 'reservations' | 'suppliers' | 'caja' | 'attributes' | 'logistics' | 'classification_config' | 'sequences'>('inventory');
     const [isAuthReady, setIsAuthReady] = useState(false);
 
     useEffect(() => {
@@ -170,6 +171,17 @@ function App() {
                         >
                             Logística
                         </button>
+                        <button
+                            onClick={() => setActiveTab('sequences')}
+                            style={{
+                                background: 'none', border: 'none', fontFamily: 'Outfit', fontWeight: 600, fontSize: '13px',
+                                color: activeTab === 'sequences' ? 'var(--accent)' : 'var(--text-muted)', cursor: 'pointer',
+                                borderBottom: activeTab === 'sequences' ? '2px solid var(--accent)' : '2px solid transparent',
+                                padding: '4px 0', transition: 'all 0.2s'
+                            }}
+                        >
+                            Numeradores
+                        </button>
                     </div>
                 </div>
             </nav>
@@ -183,6 +195,7 @@ function App() {
                 {activeTab === 'classification_config' && <ClassificationControlTower />}
                 {activeTab === 'attributes' && <DomainAttributeManager />}
                 {activeTab === 'logistics' && <LocationStatusManager />}
+                {activeTab === 'sequences' && <SequenceManager />}
             </main>
         </div>
     );
