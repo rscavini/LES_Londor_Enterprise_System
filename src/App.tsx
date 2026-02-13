@@ -11,11 +11,12 @@ import CustomerManager from '@modules/inventario/src/components/CustomerManager'
 import ReservationBandeja from '@modules/inventario/src/components/ReservationBandeja';
 import SupplierManager from '@modules/inventario/src/components/SupplierManager';
 import CajaManager from '@modules/caja/src/components/CajaManager';
+import PurchaseModuleView from '@modules/caja/src/components/PurchaseModuleView';
 import SequenceManager from './components/SequenceManager';
 
 
 function App() {
-    const [activeTab, setActiveTab] = useState<'inventory' | 'customers' | 'reservations' | 'suppliers' | 'caja' | 'attributes' | 'logistics' | 'classification_config' | 'sequences'>('inventory');
+    const [activeTab, setActiveTab] = useState<'inventory' | 'customers' | 'reservations' | 'suppliers' | 'caja' | 'purchases' | 'attributes' | 'logistics' | 'classification_config' | 'sequences'>('inventory');
     const [isAuthReady, setIsAuthReady] = useState(false);
 
     useEffect(() => {
@@ -139,6 +140,17 @@ function App() {
                             Caja
                         </button>
                         <button
+                            onClick={() => setActiveTab('purchases')}
+                            style={{
+                                background: 'none', border: 'none', fontFamily: 'Outfit', fontWeight: 600, fontSize: '13px',
+                                color: activeTab === 'purchases' ? 'var(--accent)' : 'var(--text-muted)', cursor: 'pointer',
+                                borderBottom: activeTab === 'purchases' ? '2px solid var(--accent)' : '2px solid transparent',
+                                padding: '4px 0', transition: 'all 0.2s'
+                            }}
+                        >
+                            Compras
+                        </button>
+                        <button
                             onClick={() => setActiveTab('classification_config')}
                             style={{
                                 background: 'none', border: 'none', fontFamily: 'Outfit', fontWeight: 600, fontSize: '13px',
@@ -192,6 +204,7 @@ function App() {
                 {activeTab === 'suppliers' && <SupplierManager />}
                 {activeTab === 'reservations' && <ReservationBandeja />}
                 {activeTab === 'caja' && <CajaManager />}
+                {activeTab === 'purchases' && <PurchaseModuleView />}
                 {activeTab === 'classification_config' && <ClassificationControlTower />}
                 {activeTab === 'attributes' && <DomainAttributeManager />}
                 {activeTab === 'logistics' && <LocationStatusManager />}
