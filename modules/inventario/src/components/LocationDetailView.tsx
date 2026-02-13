@@ -180,6 +180,7 @@ const LocationDetailView: React.FC<Props> = ({ location, onBack, onSave }) => {
         setIsEditing(false);
     };
 
+
     const renderWorkshopSideInfo = () => (
         <div className="glass-card" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--accent)' }}>
@@ -829,7 +830,7 @@ const LocationDetailView: React.FC<Props> = ({ location, onBack, onSave }) => {
                                                                     if (!item.isApproved) {
                                                                         updates.isApproved = true;
                                                                     }
-                                                                    await InventoryService.update(item.id!, updates);
+                                                                    await InventoryService.update(item.id!, updates, 'admin');
                                                                     setIsAssigningPiece(false);
                                                                     fetchInventory();
                                                                 } catch (error) {
@@ -942,7 +943,7 @@ const LocationDetailView: React.FC<Props> = ({ location, onBack, onSave }) => {
                                                             title="Quitar de vitrina"
                                                             onClick={async () => {
                                                                 try {
-                                                                    await InventoryService.update(item.id!, { showcaseId: undefined });
+                                                                    await InventoryService.update(item.id!, { showcaseId: undefined }, 'admin');
                                                                     fetchInventory();
                                                                 } catch (error) {
                                                                     console.error('Error removing item from showcase:', error);
@@ -1079,7 +1080,7 @@ const LocationDetailView: React.FC<Props> = ({ location, onBack, onSave }) => {
                                                         onClick={async () => {
                                                             if (!isEditing) return;
                                                             try {
-                                                                await InventoryService.update(item.id!, { isApproved: !item.isApproved });
+                                                                await InventoryService.update(item.id!, { isApproved: !item.isApproved }, 'admin');
                                                                 fetchInventory();
                                                             } catch (error) {
                                                                 console.error('Error toggling approval:', error);

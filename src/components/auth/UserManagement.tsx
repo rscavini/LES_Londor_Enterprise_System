@@ -249,8 +249,10 @@ export const UserManagement: React.FC = () => {
 
             {showModal && (
                 <UserDetailModal
-                    userToEdit={selectedUser}
+                    user={selectedUser}
+                    stores={[]}
                     onClose={() => setShowModal(false)}
+
                     onSave={() => {
                         setShowModal(false);
                         fetchUsers();

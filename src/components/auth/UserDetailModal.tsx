@@ -3,25 +3,26 @@ import { useAuth } from '../../contexts/AuthContext';
 import { X, Save, AlertCircle, Loader2 } from 'lucide-react';
 
 interface UserDetailModalProps {
-    userToEdit?: any;
+    user?: any | null;
+    stores: any[];
     onClose: () => void;
     onSave: () => void;
 }
 
-export const UserDetailModal: React.FC<UserDetailModalProps> = ({ userToEdit, onClose, onSave }) => {
+export const UserDetailModal: React.FC<UserDetailModalProps> = ({ user, stores = [], onClose, onSave }) => {
     const { user: authUser } = useAuth();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [formData, setFormData] = useState({
-        email: userToEdit?.email || '',
-        displayName: userToEdit?.displayName || '',
-        phone: userToEdit?.phone || '',
-        roleId: userToEdit?.roleId || 'DEPENDIENTE',
-        storeIds: userToEdit?.storeIds || [],
-        sendPasswordReset: !userToEdit
+        email: user?.email || '',
+        displayName: user?.displayName || '',
+        phone: user?.phone || '',
+        roleId: user?.roleId || 'DEPENDIENTE',
+        storeIds: user?.storeIds || [],
+        sendPasswordReset: !user
     });
 
-    const isEdit = !!userToEdit;
+    const isEdit = !!user;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -31,7 +32,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ userToEdit, on
         try {
             const token = await authUser?.getIdToken();
             const method = isEdit ? 'PATCH' : 'POST';
-            const url = isEdit ? `/api/admin/users/${userToEdit.uid}` : '/api/admin/users';
+            const url = isEdit ? `/api/admin/users/${user.uid}` : '/api/admin/users';
 
             const response = await fetch(url, {
                 method,
@@ -49,8 +50,12 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ userToEdit, on
             }
 
             onSave();
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                setError(err.message);
+            } else {
+                setError('Ocurrió un error inesperado');
+            }
         } finally {
             setLoading(false);
         }
@@ -60,8 +65,9 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ userToEdit, on
         setFormData(prev => ({
             ...prev,
             storeIds: prev.storeIds.includes(storeId)
-                ? prev.storeIds.filter(id => id !== storeId)
+                ? prev.storeIds.filter((id: string) => id !== storeId)
                 : [...prev.storeIds, storeId]
+
         }));
     };
 
@@ -71,9 +77,9 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ userToEdit, on
             backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center',
             justifyContent: 'center', zIndex: 100, backdropFilter: 'blur(4px)'
         }}>
-            <div className="glass-card" style={{ width: '100%', maxWidth: '500px', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div className="glass-card" style={{ width: '100%', maxWidth: '500px', maxHeight: '90vh', overflowY: 'auto', backgroundColor: 'white' }}>
                 <div style={{ padding: '25px', borderBottom: '1px solid rgba(0,0,0,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h3 style={{ fontFamily: 'Outfit', margin: 0 }}>
+                    <h3 style={{ margin: 0 }}>
                         {isEdit ? 'Editar Usuario' : 'Crear Nuevo Usuario'}
                     </h3>
                     <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
@@ -131,21 +137,22 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ userToEdit, on
                         <div>
                             <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '8px' }}>Tiendas Asignadas</label>
                             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                                {['STORE-DIP', 'STORE-PRO', 'STORE-WEB'].map(storeId => (
+                                {stores.map(store => (
                                     <button
-                                        key={storeId} type="button"
-                                        onClick={() => toggleStore(storeId)}
+                                        key={store.id} type="button"
+                                        onClick={() => toggleStore(store.id)}
                                         style={{
                                             padding: '6px 12px', borderRadius: '20px', fontSize: '12px', border: '1px solid',
                                             cursor: 'pointer', transition: 'all 0.2s',
-                                            backgroundColor: formData.storeIds.includes(storeId) ? 'var(--accent)' : 'white',
-                                            color: formData.storeIds.includes(storeId) ? 'white' : 'var(--text-muted)',
-                                            borderColor: formData.storeIds.includes(storeId) ? 'var(--accent)' : '#dee2e6'
+                                            backgroundColor: formData.storeIds.includes(store.id) ? 'var(--accent)' : 'white',
+                                            color: formData.storeIds.includes(store.id) ? 'white' : 'var(--text-muted)',
+                                            borderColor: formData.storeIds.includes(store.id) ? 'var(--accent)' : '#dee2e6'
                                         }}
                                     >
-                                        {storeId}
+                                        {store.name}
                                     </button>
                                 ))}
+                                {stores.length === 0 && <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>No hay tiendas disponibles</span>}
                             </div>
                         </div>
 
@@ -181,7 +188,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ userToEdit, on
                     </div>
                 </form>
             </div>
-            <style>{`.spinner { animation: spin 1s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            <style>{`.spinner { animation: spin 1s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } } `}</style>
         </div>
     );
 };

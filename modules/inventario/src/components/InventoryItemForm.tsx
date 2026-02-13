@@ -471,10 +471,15 @@ const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
                     </div>
                 )}
                 <div style={{ marginBottom: '16px', opacity: isDisabled ? 0.6 : 1 }}>
-                    <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600 }}>
-                        {attributeItem.name} {mapping.isMandatory && <span style={{ color: 'var(--error)' }}>*</span>}
-                        {isDisabled && <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 400, marginLeft: '8px' }}>(No Aplica)</span>}
-                    </label>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                        <label style={{ margin: 0, fontSize: '13px', fontWeight: 600 }}>
+                            {attributeItem.name} {mapping.isMandatory && <span style={{ color: 'var(--error)' }}>*</span>}
+                            {isDisabled && <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 400, marginLeft: '8px' }}>(No Aplica)</span>}
+                        </label>
+                        {!isDisabled && !['LIST', 'NUMBER', 'BOOLEAN'].includes(attributeItem.dataType) && (
+                            <VoiceInput onResult={(text) => handleAttrChange(attributeItem.id, (formData.attributes[attributeItem.id] || '') + (formData.attributes[attributeItem.id] ? ' ' : '') + text)} />
+                        )}
+                    </div>
 
                     {attributeItem.dataType === 'LIST' ? (
                         <select

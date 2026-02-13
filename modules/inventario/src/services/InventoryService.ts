@@ -9,24 +9,30 @@ export const InventoryService = {
     getAll: async (): Promise<InventoryItem[]> => {
         const q = query(collection(db, COLLECTION_NAME), where('isActive', '==', true));
         const querySnapshot = await getDocs(q);
-        return querySnapshot.docs.map(doc => ({
-            ...doc.data(),
-            id: doc.id,
-            createdAt: doc.data().createdAt?.toDate(),
-            updatedAt: doc.data().updatedAt?.toDate()
-        })) as InventoryItem[];
+        return querySnapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                ...data,
+                id: doc.id,
+                createdAt: data.createdAt?.toDate?.() || data.createdAt,
+                updatedAt: data.updatedAt?.toDate?.() || data.updatedAt
+            };
+        }) as InventoryItem[];
+
     },
 
     getById: async (id: string): Promise<InventoryItem | undefined> => {
         const docRef = doc(db, COLLECTION_NAME, id);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists() && docSnap.data().isActive) {
+            const data = docSnap.data();
             return {
-                ...docSnap.data(),
+                ...data,
                 id: docSnap.id,
-                createdAt: docSnap.data().createdAt?.toDate(),
-                updatedAt: docSnap.data().updatedAt?.toDate()
+                createdAt: data.createdAt?.toDate?.() || data.createdAt,
+                updatedAt: data.updatedAt?.toDate?.() || data.updatedAt
             } as InventoryItem;
+
         }
         return undefined;
     },
@@ -36,12 +42,14 @@ export const InventoryService = {
         const querySnapshot = await getDocs(q);
         if (!querySnapshot.empty) {
             const doc = querySnapshot.docs[0];
+            const data = doc.data();
             return {
-                ...doc.data(),
+                ...data,
                 id: doc.id,
-                createdAt: doc.data().createdAt?.toDate(),
-                updatedAt: doc.data().updatedAt?.toDate()
+                createdAt: data.createdAt?.toDate?.() || data.createdAt,
+                updatedAt: data.updatedAt?.toDate?.() || data.updatedAt
             } as InventoryItem;
+
         }
         return undefined;
     },
@@ -102,10 +110,9 @@ export const InventoryService = {
             toStatusId: data.statusId,
             reason: 'Alta inicial de pieza',
             performedBy,
-            documentType: null,
-            documentId: null,
-            notes: null
+            notes: undefined
         });
+
 
         const finalizedDoc = await getDoc(docRef);
         return {
@@ -134,12 +141,13 @@ export const InventoryService = {
             await MovementService.recordMovement({
                 itemId: id,
                 movementTypeCode,
-                toLocationId: updates.locationId,
-                toStatusId: updates.statusId,
-                reason: updates.reason || 'Actualización manual de registro',
+                toLocationId: updates.locationId || currentData.locationId,
+                toStatusId: updates.statusId || currentData.statusId,
+                reason: (updates as any).reason || 'Actualización manual de registro',
                 performedBy
             });
         }
+
 
         await updateDoc(itemRef, {
             ...updates,
@@ -147,12 +155,14 @@ export const InventoryService = {
         });
 
         const docSnap = await getDoc(itemRef);
+        const data = docSnap.data();
         return {
-            ...docSnap.data(),
+            ...data,
             id: docSnap.id,
-            createdAt: docSnap.data().createdAt?.toDate(),
-            updatedAt: docSnap.data().updatedAt?.toDate()
+            createdAt: data?.createdAt?.toDate?.() || data?.createdAt,
+            updatedAt: data?.updatedAt?.toDate?.() || data?.updatedAt
         } as InventoryItem;
+
     },
 
     deleteLogic: async (id: string): Promise<boolean> => {
@@ -168,6 +178,33 @@ export const InventoryService = {
         }
     },
 
+    recordReservation: async (itemId: string, data: any, performedBy: string): Promise<string> => {
+        const docRef = await addDoc(collection(db, 'reservations'), {
+            ...data,
+            itemId,
+            status: 'ACTIVE',
+            createdAt: serverTimestamp(),
+            createdBy: performedBy
+        });
+
+        // Actualizar estado de la pieza
+        await updateDoc(doc(db, COLLECTION_NAME, itemId), {
+            statusId: 'stat_reserved',
+            updatedAt: serverTimestamp()
+        });
+
+        // Registrar movimiento
+        await MovementService.recordMovement({
+            itemId,
+            movementTypeCode: 'RESERVE',
+            toStatusId: 'stat_reserved',
+            reason: 'Reserva / Apartado de cliente',
+            performedBy
+        });
+
+        return docRef.id;
+    },
+
     getByLocation: async (locationId: string): Promise<InventoryItem[]> => {
         const q = query(
             collection(db, COLLECTION_NAME),
@@ -175,12 +212,16 @@ export const InventoryService = {
             where('isActive', '==', true)
         );
         const querySnapshot = await getDocs(q);
-        return querySnapshot.docs.map(doc => ({
-            ...doc.data(),
-            id: doc.id,
-            createdAt: doc.data().createdAt?.toDate(),
-            updatedAt: doc.data().updatedAt?.toDate()
-        })) as InventoryItem[];
+        return querySnapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                ...data,
+                id: doc.id,
+                createdAt: data.createdAt?.toDate?.() || data.createdAt,
+                updatedAt: data.updatedAt?.toDate?.() || data.updatedAt
+            };
+        }) as InventoryItem[];
+
     },
 
     getBySupplier: async (supplierId: string): Promise<InventoryItem[]> => {
@@ -190,11 +231,15 @@ export const InventoryService = {
             where('isActive', '==', true)
         );
         const querySnapshot = await getDocs(q);
-        return querySnapshot.docs.map(doc => ({
-            ...doc.data(),
-            id: doc.id,
-            createdAt: doc.data().createdAt?.toDate(),
-            updatedAt: doc.data().updatedAt?.toDate()
-        })) as InventoryItem[];
+        return querySnapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                ...data,
+                id: doc.id,
+                createdAt: data.createdAt?.toDate?.() || data.createdAt,
+                updatedAt: data.updatedAt?.toDate?.() || data.updatedAt
+            };
+        }) as InventoryItem[];
+
     }
 };

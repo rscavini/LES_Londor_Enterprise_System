@@ -145,14 +145,13 @@ const InventoryManager: React.FC = () => {
         }
 
         try {
-            await ReservationService.createReservation({
-                itemId: selectedDetailItem.id,
+            await InventoryService.recordReservation(selectedDetailItem.id, {
                 customerId: selectedCustomerId,
-                locationId: selectedDetailItem.locationId,
                 expiryDate: new Date(reservationExpiry),
-                resolutionNote: '',
-                createdBy: 'admin'
-            });
+                locationId: selectedDetailItem.locationId,
+                status: 'ACTIVE' as any
+            }, 'admin');
+
             setIsReservationModalOpen(false);
             setSelectedDetailItem(null);
             await loadData();
@@ -214,12 +213,12 @@ const InventoryManager: React.FC = () => {
     const handleSaveItem = async (data: any) => {
         try {
             if (editingItemId) {
-                await InventoryService.update(editingItemId, data);
+                await InventoryService.update(editingItemId, data, 'admin');
             } else {
                 await InventoryService.create({
                     ...data,
                     createdBy: 'admin'
-                });
+                }, 'admin');
             }
             setIsAddModalOpen(false);
             setEditingItemId(null);
@@ -344,7 +343,7 @@ const InventoryManager: React.FC = () => {
                 const updateData: any = {};
                 if (bulkMoveData.locationId) updateData.locationId = bulkMoveData.locationId;
                 if (bulkMoveData.statusId) updateData.statusId = bulkMoveData.statusId;
-                return InventoryService.update(id, updateData);
+                return InventoryService.update(id, updateData, 'admin');
             }));
             setShowBulkMove(false);
             setSelectedItems([]);
@@ -622,8 +621,8 @@ const InventoryManager: React.FC = () => {
                             <div style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', display: 'flex', gap: '8px', alignItems: 'center' }}>
                                 <VoiceInput
                                     onResult={(text) => setSalesQuery(prev => prev + (prev ? ' ' : '') + text)}
-                                    style={{ color: 'white' }}
                                 />
+
                                 <button
                                     onClick={handleSalesAssistantSearch}
                                     style={{
@@ -1427,11 +1426,12 @@ const InventoryManager: React.FC = () => {
                                         for (const itemId of selectedItems) {
                                             const item = items.find(i => i.id === itemId);
                                             if (item) {
+                                                await InventoryService.update(item.id!, { showcaseId: undefined }, 'admin');
                                                 await InventoryService.update(itemId, {
                                                     commercialLine: bulkTags.commercialLine || item.commercialLine,
                                                     occasion: [...new Set([...(item.occasion || []), ...bulkTags.occasion])],
                                                     symbology: [...new Set([...(item.symbology || []), ...bulkTags.symbology])]
-                                                });
+                                                }, 'admin');
                                             }
                                         }
                                         await loadData();
