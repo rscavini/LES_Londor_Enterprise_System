@@ -296,3 +296,24 @@ select.form-control {
 .bulk-btn:hover svg {
   color: var(--accent);
 }
+
+.btn-glass {
+    background: white;
+    border: 1px solid rgba(0,0,0,0.05);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+}
+
+.btn-glass:hover {
+    background-color: #f8f9fa;
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+
+.glass-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.glass-card:hover {
+    box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+}

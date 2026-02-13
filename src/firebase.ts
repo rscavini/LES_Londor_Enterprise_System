@@ -16,13 +16,5 @@ const app = initializeApp(firebaseConfig);
 const db: Firestore = initializeFirestore(app, {});
 const auth: Auth = getAuth(app);
 
-// Initialize Anonymous Sign-in
-signInAnonymously(auth)
-    .then(() => {
-        console.log("Conexión anónima establecida con Firebase");
-    })
-    .catch((error) => {
-        console.error("Error al establecer conexión anónima:", error);
-    });
-
+// Firebase initialization complete. Auth is exported for use in AuthContext/LoginView.
 export { db, auth };
