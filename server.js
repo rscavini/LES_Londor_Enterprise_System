@@ -279,12 +279,35 @@ app.post('/api/admin/users/:uid/reset-password', authMiddleware, async (req, res
 });
 
 // --- Static Files & SPA Routing ---
-app.use(express.static(path.join(__dirname, 'dist')));
+const distPath = path.join(__dirname, 'dist');
+console.log('Static files path:', distPath);
+
+import { existsSync, readdirSync } from 'fs';
+if (existsSync(distPath)) {
+    console.log('Dist folder found. Contents:', readdirSync(distPath));
+    const assetsPath = path.join(distPath, 'assets');
+    if (existsSync(assetsPath)) {
+        console.log('Assets folder found. Contents:', readdirSync(assetsPath));
+    } else {
+        console.warn('Assets folder NOT found in dist');
+    }
+} else {
+    console.error('Dist folder NOT found at:', distPath);
+    console.log('Current directory contents:', readdirSync(__dirname));
+}
+
+app.use(express.static(distPath));
 
 app.get(/.*/, (req, res) => {
-    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+    // If it looks like an asset request but reached here, it's missing
+    if (req.url.startsWith('/assets/')) {
+        console.warn('Asset not found:', req.url);
+        return res.status(404).send('Asset not found');
+    }
+    res.sendFile(path.join(distPath, 'index.html'));
 });
 
 app.listen(PORT, '0.0.0.0', () => {
+
     console.log(`Server listening on port ${PORT}`);
 });
