@@ -17,6 +17,7 @@ import {
 import { SupplierService } from '../services/SupplierService';
 import { Supplier } from '../models/schema';
 import SupplierDetails from './SupplierDetails';
+import VoiceInput from './VoiceInput';
 
 const SupplierManager: React.FC = () => {
     const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -224,7 +225,10 @@ const SupplierManager: React.FC = () => {
                         </div>
 
                         <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, fontSize: '13px' }}>Notas Adicionales</label>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                <label style={{ margin: 0, fontWeight: 600, fontSize: '13px' }}>Notas Adicionales</label>
+                                <VoiceInput onResult={(text) => setFormData(prev => ({ ...prev, notes: prev.notes + (prev.notes ? ' ' : '') + text }))} />
+                            </div>
                             <textarea
                                 className="form-control"
                                 rows={3}

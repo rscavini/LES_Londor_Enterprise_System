@@ -3,6 +3,7 @@ import { Plus, Edit2, Trash2, Layers, ArrowLeft, Filter } from 'lucide-react';
 import { SubcategoryService } from '../services/SubcategoryService';
 import { CategoryService } from '../services/CategoryService';
 import { Subcategory, Category } from '../models/schema';
+import VoiceInput from './VoiceInput';
 
 const SubcategoryManager: React.FC = () => {
     const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
@@ -137,7 +138,10 @@ const SubcategoryManager: React.FC = () => {
                             />
                         </div>
                         <div style={{ marginBottom: '30px' }}>
-                            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Descripción (opcional)</label>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                <label style={{ margin: 0, fontWeight: 500 }}>Descripción (opcional)</label>
+                                <VoiceInput onResult={(text) => setFormData(prev => ({ ...prev, description: prev.description + (prev.description ? ' ' : '') + text }))} />
+                            </div>
                             <textarea
                                 rows={4}
                                 placeholder="Definición de la tipología constructiva"

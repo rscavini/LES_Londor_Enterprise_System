@@ -39,6 +39,7 @@ import {
     Zap,
     Settings
 } from 'lucide-react';
+import VoiceInput from './VoiceInput';
 import { InventoryService } from '../services/InventoryService';
 import { CategoryService } from '../services/CategoryService';
 import { SubcategoryService } from '../services/SubcategoryService';
@@ -81,6 +82,7 @@ const InventoryManager: React.FC = () => {
     // Sales Assistant Mode
     const [isSalesAssistantActive, setIsSalesAssistantActive] = useState(false);
     const [salesIntent, setSalesIntent] = useState('');
+    const [salesQuery, setSalesQuery] = useState(''); // New state for sales assistant input
 
     // Filters state
     const [filters, setFilters] = useState({
@@ -257,8 +259,8 @@ const InventoryManager: React.FC = () => {
 
         // Filtro de Asistente de Ventas (Búsqueda Emocional/Por Intento)
         let matchesIntent = true;
-        if (isSalesAssistantActive && salesIntent) {
-            const intent = salesIntent.toLowerCase();
+        if (isSalesAssistantActive && salesQuery) { // Changed from salesIntent to salesQuery
+            const intent = salesQuery.toLowerCase(); // Changed from salesIntent to salesQuery
             const commercialLine = (item.commercialLine || '').toLowerCase();
             const collection = (item.collection || '').toLowerCase();
             const symbology = (item.symbology || []).join(' ').toLowerCase();
@@ -389,7 +391,12 @@ const InventoryManager: React.FC = () => {
     const getLocationName = (id: string) => locations.find(l => l.id === id)?.name || 'N/A';
     const getStatusName = (id: string) => statuses.find(s => s.id === id)?.name || 'N/A';
 
-
+    const handleSalesAssistantSearch = () => {
+        // This function would typically trigger an AI call or more complex filtering
+        // For now, it just re-filters based on salesQuery
+        console.log("Sales Assistant Search triggered with query:", salesQuery);
+        // The filteredItems already react to salesQuery change, so no explicit action needed here for basic filtering
+    };
 
     const renderExcelView = () => {
         const renderSortIcon = (field: string) => {
@@ -598,28 +605,51 @@ const InventoryManager: React.FC = () => {
                             <input
                                 type="text"
                                 className="form-control"
-                                placeholder="Busca por intención: 'Aniversario', 'Minimalista', 'Protección', 'Graduación'..."
+                                placeholder="Describe el perfil del cliente o la intención (Ej: Anillo de compromiso para presupuesto de 2000€)..."
                                 style={{
-                                    paddingLeft: '48px',
-                                    height: '52px',
+                                    width: '100%',
                                     backgroundColor: 'rgba(255,255,255,0.15)',
                                     border: '1px solid rgba(255,255,255,0.3)',
                                     color: 'white',
-                                    fontSize: '16px'
+                                    padding: '12px 100px 12px 48px',
+                                    borderRadius: '12px',
+                                    outline: 'none',
+                                    fontSize: '15px'
                                 }}
-                                value={salesIntent}
-                                onChange={e => setSalesIntent(e.target.value)}
+                                value={salesQuery}
+                                onChange={(e) => setSalesQuery(e.target.value)}
                             />
+                            <div style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                <VoiceInput
+                                    onResult={(text) => setSalesQuery(prev => prev + (prev ? ' ' : '') + text)}
+                                    style={{ color: 'white' }}
+                                />
+                                <button
+                                    onClick={handleSalesAssistantSearch}
+                                    style={{
+                                        backgroundColor: '#fff',
+                                        color: 'var(--primary)',
+                                        border: 'none',
+                                        padding: '6px 16px',
+                                        borderRadius: '8px',
+                                        fontWeight: 700,
+                                        fontSize: '12px',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    CONSULTAR
+                                </button>
+                            </div>
                         </div>
                         <div style={{ display: 'flex', gap: '8px' }}>
                             {['Nupcial', 'Juvenil', 'Alta Joyería', 'Daily Wear'].map(line => (
                                 <button
                                     key={line}
                                     className="btn"
-                                    onClick={() => setSalesIntent(line)}
+                                    onClick={() => setSalesQuery(line)} // Changed from salesIntent to salesQuery
                                     style={{
-                                        backgroundColor: salesIntent === line ? 'white' : 'rgba(255,255,255,0.1)',
-                                        color: salesIntent === line ? 'var(--primary)' : 'white',
+                                        backgroundColor: salesQuery === line ? 'white' : 'rgba(255,255,255,0.1)', // Changed from salesIntent to salesQuery
+                                        color: salesQuery === line ? 'var(--primary)' : 'white', // Changed from salesIntent to salesQuery
                                         border: 'none',
                                         fontSize: '12px',
                                         fontWeight: 700
@@ -635,15 +665,18 @@ const InventoryManager: React.FC = () => {
 
             {/* Filters Bar */}
             <div className="glass-card" style={{ padding: '16px 24px', marginBottom: '32px', display: 'flex', gap: '20px', alignItems: 'center' }}>
-                <div style={{ flex: 1, position: 'relative' }}>
-                    <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                    <input
-                        type="text"
-                        placeholder="Buscar por nombre o código..."
-                        style={{ width: '100%', paddingLeft: '40px' }}
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                    />
+                <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ flex: 1, position: 'relative' }}>
+                        <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                        <input
+                            type="text"
+                            placeholder="Buscar por nombre o código..."
+                            style={{ width: '100%', paddingLeft: '40px' }}
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                    <VoiceInput onResult={(text) => setSearchTerm(prev => prev + (prev ? ' ' : '') + text)} />
                 </div>
                 <button className="btn" style={{ border: '1px solid #ddd' }} onClick={() => setIsFilterDrawerOpen(true)}>
                     <Filter size={18} /> Filtros {Object.values(filters).filter(f => f !== '').length > 0 && `(${Object.values(filters).filter(f => f !== '').length})`}

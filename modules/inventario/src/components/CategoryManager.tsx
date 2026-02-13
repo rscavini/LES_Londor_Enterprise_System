@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, FolderTree, ArrowLeft } from 'lucide-react';
 import { CategoryService } from '../services/CategoryService';
 import { Category } from '../models/schema';
+import VoiceInput from './VoiceInput';
 
 const CategoryManager: React.FC = () => {
     const [categories, setCategories] = useState<Category[]>([]);
@@ -82,10 +83,6 @@ const CategoryManager: React.FC = () => {
                                 onChange={e => setFormData({ ...formData, name: e.target.value })}
                             />
                         </div>
-                        import VoiceInput from './VoiceInput';
-
-                        // ... (in CategoryManager component) ...
-
                         <div style={{ marginBottom: '30px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                                 <label style={{ margin: 0, fontWeight: 500 }}>Descripción (opcional)</label>
