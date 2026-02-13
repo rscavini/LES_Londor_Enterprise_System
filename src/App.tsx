@@ -19,7 +19,14 @@ import { LogOut, User as UserIcon, Shield, Store } from 'lucide-react';
 
 function AppContent() {
     const { user, profile, loading, activeStoreId, signOut } = useAuth();
-    const [activeTab, setActiveTab] = useState<'inventory' | 'customers' | 'reservations' | 'suppliers' | 'caja' | 'purchases' | 'attributes' | 'logistics' | 'classification_config' | 'sequences' | 'admin_users'>('inventory');
+    const [activeTab, setActiveTabState] = useState<'inventory' | 'customers' | 'reservations' | 'suppliers' | 'caja' | 'purchases' | 'attributes' | 'logistics' | 'classification_config' | 'sequences' | 'admin_users'>(
+        (localStorage.getItem('les_activeTab') as any) || 'inventory'
+    );
+
+    const setActiveTab = (tab: typeof activeTab) => {
+        setActiveTabState(tab);
+        localStorage.setItem('les_activeTab', tab);
+    };
 
     if (loading) {
         return (
@@ -107,6 +114,7 @@ function AppContent() {
                                     <button onClick={() => setActiveTab('sequences')} className={`nav-link ${activeTab === 'sequences' ? 'active' : ''}`}>Numeradores</button>
                                     <button onClick={() => setActiveTab('classification_config')} className={`nav-link ${activeTab === 'classification_config' ? 'active' : ''}`}>Config. Clasificación</button>
                                     <button onClick={() => setActiveTab('attributes')} className={`nav-link ${activeTab === 'attributes' ? 'active' : ''}`}>Atributos</button>
+                                    <button onClick={() => setActiveTab('logistics')} className={`nav-link ${activeTab === 'logistics' ? 'active' : ''}`}>Talleres y Tiendas</button>
                                     <button onClick={() => setActiveTab('admin_users')} className={`nav-link ${activeTab === 'admin_users' ? 'active' : ''}`}>Usuarios</button>
                                 </>
                             )}
@@ -145,6 +153,7 @@ function AppContent() {
                 {activeTab === 'classification_config' && profile.roleId === 'ADMIN' && <ClassificationControlTower />}
                 {activeTab === 'attributes' && profile.roleId === 'ADMIN' && <DomainAttributeManager />}
                 {activeTab === 'sequences' && profile.roleId === 'ADMIN' && <SequenceManager />}
+                {activeTab === 'logistics' && profile.roleId === 'ADMIN' && <LocationStatusManager />}
                 {activeTab === 'admin_users' && profile.roleId === 'ADMIN' && <UserManagement />}
             </main>
             <style>{`

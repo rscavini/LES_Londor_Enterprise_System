@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Activity, Plus, Edit2, Trash2, ArrowRight, Home, Settings } from 'lucide-react';
+import { MapPin, Activity, Plus, Edit2, Trash2, ArrowRight, Home, Settings, Search, Filter } from 'lucide-react';
 import { LocationService } from '../services/LocationService';
 import { OperationalStatusService } from '../services/OperationalStatusService';
 import { Location, OperationalStatus, LocationType } from '../models/schema';
@@ -12,6 +12,8 @@ const LocationStatusManager: React.FC = () => {
     const [statuses, setStatuses] = useState<OperationalStatus[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalData, setModalData] = useState<{ id?: string, name: string, type: LocationType }>({ name: '', type: 'OTHER' });
+    const [searchTerm, setSearchTerm] = useState('');
+    const [typeFilter, setTypeFilter] = useState<LocationType | 'ALL'>('ALL');
 
     useEffect(() => {
         loadData();
@@ -100,6 +102,14 @@ const LocationStatusManager: React.FC = () => {
 
     const renderList = () => {
         const items = view === 'locations' ? locations : statuses;
+        const filteredItems = items.filter(item => {
+            const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesType = view === 'locations' ?
+                (typeFilter === 'ALL' || (item as any).type === typeFilter) :
+                true;
+            return matchesSearch && matchesType;
+        });
+
         const Icon = view === 'locations' ? MapPin : Activity;
         const title = view === 'locations' ? 'Ubicaciones' : 'Estados Operativos';
 
@@ -107,13 +117,18 @@ const LocationStatusManager: React.FC = () => {
             <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
                     <h2 style={{ margin: 0 }}>{title}</h2>
-                    <button className="btn btn-accent" onClick={() => handleOpenModal()}>
-                        <Plus size={18} /> Nuevo {view === 'locations' ? 'Punto' : 'Estado'}
-                    </button>
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                        <div style={{ color: 'var(--text-muted)', fontSize: '14px', fontWeight: 600 }}>
+                            {filteredItems.length} resultado(s)
+                        </div>
+                        <button className="btn btn-accent" onClick={() => handleOpenModal()}>
+                            <Plus size={18} /> Nuevo {view === 'locations' ? 'Punto' : 'Estado'}
+                        </button>
+                    </div>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '20px' }}>
-                    {items.map(item => {
+                    {filteredItems.map(item => {
                         const locTypeLabel = (item as any).type ?
                             ((item as any).type === 'WORKSHOP' ? 'TALLER' :
                                 (item as any).type === 'STORE' ? 'TIENDA' : 'OTRO') : null;
@@ -229,6 +244,75 @@ const LocationStatusManager: React.FC = () => {
                     >
                         <Activity size={18} /> Estados
                     </button>
+                </div>
+
+                <div className="glass-card" style={{
+                    marginTop: '24px',
+                    padding: '20px',
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '20px',
+                    alignItems: 'center'
+                }}>
+                    <div style={{ flex: 1, position: 'relative', minWidth: '300px' }}>
+                        <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                        <input
+                            type="text"
+                            placeholder={`Buscar ${view === 'locations' ? 'ubicación' : 'estado'} por nombre...`}
+                            className="form-control"
+                            style={{ paddingLeft: '40px', width: '100%' }}
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+
+                    {view === 'locations' && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <Filter size={18} color="var(--text-muted)" />
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                {(['ALL', 'WORKSHOP', 'STORE', 'OTHER'] as const).map(t => (
+                                    <button
+                                        key={t}
+                                        onClick={() => setTypeFilter(t)}
+                                        style={{
+                                            padding: '6px 12px',
+                                            borderRadius: '8px',
+                                            border: '1px solid #eee',
+                                            fontSize: '11px',
+                                            fontWeight: 700,
+                                            cursor: 'pointer',
+                                            backgroundColor: typeFilter === t ? 'var(--primary)' : 'white',
+                                            color: typeFilter === t ? 'white' : 'var(--text-muted)',
+                                            transition: 'all 0.2s'
+                                        }}
+                                    >
+                                        {t === 'ALL' ? 'TODOS' : t === 'WORKSHOP' ? 'TALLERES' : t === 'STORE' ? 'TIENDAS' : 'OTROS'}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {(searchTerm || typeFilter !== 'ALL') && (
+                        <button
+                            onClick={() => {
+                                setSearchTerm('');
+                                setTypeFilter('ALL');
+                            }}
+                            style={{
+                                padding: '6px 12px',
+                                borderRadius: '8px',
+                                background: '#f5f5f5',
+                                border: '1px solid #ddd',
+                                fontSize: '11px',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                color: 'var(--text-muted)'
+                            }}
+                        >
+                            Limpiar Filtros
+                        </button>
+                    )}
                 </div>
             </header>
 

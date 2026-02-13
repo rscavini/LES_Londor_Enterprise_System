@@ -209,12 +209,14 @@ export const UserManagement: React.FC = () => {
                                 <td style={{ textAlign: 'center' }}>
                                     <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
                                         <button
+                                            type="button"
                                             onClick={() => { setSelectedUser(u); setShowModal(true); }}
                                             title="Editar" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
                                         >
                                             <Edit2 size={16} />
                                         </button>
                                         <button
+                                            type="button"
                                             onClick={() => handleResetPassword(u.uid)}
                                             title="Reset Password" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
                                         >
@@ -222,6 +224,7 @@ export const UserManagement: React.FC = () => {
                                         </button>
                                         {u.status === 'ACTIVE' ? (
                                             <button
+                                                type="button"
                                                 onClick={() => handleToggleStatus(u.uid, u.status)}
                                                 title="Desactivar" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--error)' }}
                                             >
@@ -229,6 +232,7 @@ export const UserManagement: React.FC = () => {
                                             </button>
                                         ) : (
                                             <button
+                                                type="button"
                                                 onClick={() => handleToggleStatus(u.uid, u.status)}
                                                 title="Activar" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--success)' }}
                                             >

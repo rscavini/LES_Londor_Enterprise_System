@@ -82,8 +82,15 @@ const CategoryManager: React.FC = () => {
                                 onChange={e => setFormData({ ...formData, name: e.target.value })}
                             />
                         </div>
+                        import VoiceInput from './VoiceInput';
+
+                        // ... (in CategoryManager component) ...
+
                         <div style={{ marginBottom: '30px' }}>
-                            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Descripción (opcional)</label>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                <label style={{ margin: 0, fontWeight: 500 }}>Descripción (opcional)</label>
+                                <VoiceInput onResult={(text) => setFormData(prev => ({ ...prev, description: prev.description + (prev.description ? ' ' : '') + text }))} />
+                            </div>
                             <textarea
                                 rows={4}
                                 placeholder="Breve descripción del tipo de joya"
