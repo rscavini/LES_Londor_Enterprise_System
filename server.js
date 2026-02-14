@@ -281,7 +281,21 @@ app.post('/api/admin/users/:uid/reset-password', authMiddleware, async (req, res
 // --- Static Files & SPA Routing ---
 const distPath = path.join(__dirname, 'dist');
 
-app.use(express.static(distPath));
+// Hashed assets (/assets/*) can be cached indefinitely (immutable)
+app.use('/assets', express.static(path.join(distPath, 'assets'), {
+    maxAge: '1y',
+    immutable: true
+}));
+
+// All other static files: short cache
+app.use(express.static(distPath, {
+    maxAge: 0,
+    setHeaders: (res, filePath) => {
+        if (filePath.endsWith('.html')) {
+            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        }
+    }
+}));
 
 app.get(/.*/, (req, res) => {
     // If it looks like an asset request but reached here, it's missing in the static middleware
@@ -289,6 +303,10 @@ app.get(/.*/, (req, res) => {
         console.warn('Asset not found:', req.url);
         return res.status(404).send('Asset not found');
     }
+    // CRITICAL: Prevent CDN/browser from caching index.html
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     res.sendFile(path.join(distPath, 'index.html'));
 });
 
